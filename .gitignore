@@ -32,7 +32,7 @@ experiments_tii
 configs
 coco_annotation_scripts
 TII_LIDAR_DATA
-inference
+inference/data
 seg_SLRM
 stuff_from_server
 
