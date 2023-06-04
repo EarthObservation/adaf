@@ -2,25 +2,13 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning) 
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
+import os
+import cv2
 from aitlas.transforms import ResizeV2
 from aitlas.utils import image_loader
-from aitlas.models import FasterRCNN
-import os
-
-def load_model(model_path):
-    model_config = {
-        "num_classes": 4,
-        "learning_rate": 0.001,
-        "pretrained": True,
-        "metrics": ["map"]
-    }
-
-    model = FasterRCNN(model_config)
-    model.prepare()
-    model.load_model(model_path)
-    print("Model successfully loaded.")
-    print("")
-    return model
+from aitlas.transforms import Transpose
+from aitlas.models import HRNet
+import matplotlib.pyplot as plt
 
 
 def  make_predictions_on_single_patch_store_preds(model, image_path, image_filename, predctions_dir):
@@ -39,10 +27,9 @@ def  make_predictions_on_single_patch_store_preds(model, image_path, image_filen
     file.write(predictions_single_patch_str)
     file.close()
 
-def make_predictions_on_patches(model_path, patches_folder, device = 'cpu'):
-    model = load_model(model_path=model_path)
+def make_predictions_on_patches_object_detection(model, patches_folder):
     predictions_dir = patches_folder.split("/")[:-1]
-    predictions_dir.append("predictions/")
+    predictions_dir.append("predictions_object_detection/")
     predictions_dir = '/'.join(predictions_dir)
 
     print("Generating predictions:")
@@ -60,3 +47,26 @@ def make_predictions_on_single_patch_show_detected_objects(model, image_path):
     transform = ResizeV2()
     image = image_loader(image_path)
     fig = model.detect_objects(image, labels, transform)
+
+
+def make_predictions_on_patches_segmentation(model, patches_folder):
+    predictions_dir = patches_folder.split("/")[:-1]
+    predictions_dir.append("predictions_segmentation/")
+    predictions_dir = '/'.join(predictions_dir)
+
+    print("Generating predictions:")
+    if not os.path.isdir(predictions_dir):
+        os.makedirs(predictions_dir)
+    for file in os.listdir(patches_folder):
+        print(">>> ", file)
+        if file.endswith(".tif"):
+            image_path = os.path.join(patches_folder, file)
+            image_filename = file
+            make_predictions_on_single_patch_segmentation(model, image_path, image_filename, predictions_dir);
+
+
+def make_predictions_on_single_patch_segmentation(model, image_path, image_filename, predictions_dir):
+    img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    plt.switch_backend('agg')
+    fig = model.predict_masks(image = img, labels = ['barrow', 'enclosure', 'ringfort'], data_transforms=Transpose(), image_filename=image_filename, predictions_dir= predictions_dir);

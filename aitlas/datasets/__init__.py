@@ -5,6 +5,7 @@ from .airs import AIRSDataset
 from .amazon_rainforest import AmazonRainforestDataset
 from .big_earth_net import BigEarthNetDataset
 from .brazilian_coffee_scenes import BrazilianCoffeeScenesDataset
+from .tii_lidar import TiiLIDARDataset
 
 # Datasets for crop type prediction
 from .breizhcrops import BreizhCropsDataset

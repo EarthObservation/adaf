@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+from PIL import Image
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
@@ -440,6 +441,8 @@ class BaseModel(nn.Module, Configurable):
         image=None,
         labels=None,
         data_transforms=None,
+        image_filename = None,
+        predictions_dir = None,
         description="running prediction for single image",
     ):
         """
@@ -482,10 +485,14 @@ class BaseModel(nn.Module, Configurable):
             plt.imshow(
                 predicted[0][i].astype(np.uint8) * 255, cmap="gray", vmin=0, vmax=255
             )
+            if image_filename and predictions_dir:
+                mask_plot = Image.fromarray(predicted[0][i].astype(np.uint8) * 255)
+                mask_plot.save(os.path.join(predictions_dir, f"{image_filename}_{labels[i]}_segmentation_mask.png"))
             plt.title(labels[i])
             plt.axis("off")
 
         plt.tight_layout()
+
 
         return fig
 
@@ -697,7 +704,7 @@ class BaseModel(nn.Module, Configurable):
         """Loads a model from a checkpoint"""
         if os.path.isfile(file_path):
             logging.info(f"Loading checkpoint {file_path}")
-            checkpoint = torch.load(file_path)
+            checkpoint = torch.load(file_path, map_location=torch.device(self.device))
 
             if "state_dict" in checkpoint:
                 self.model.load_state_dict(checkpoint["state_dict"], strict=False)

@@ -32,6 +32,9 @@ experiments_tii
 configs
 coco_annotation_scripts
 TII_LIDAR_DATA
+inference
+seg_SLRM
+stuff_from_server
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
