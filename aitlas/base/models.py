@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+import rasterio
 from PIL import Image
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -441,13 +442,10 @@ class BaseModel(nn.Module, Configurable):
         image=None,
         labels=None,
         data_transforms=None,
-        image_filename = None,
-        predictions_dir = None,
         description="running prediction for single image",
     ):
         """
         Predicts using a model against for a specified image
-
         :return: plot
         """
         # load the image and apply transformations
@@ -485,16 +483,63 @@ class BaseModel(nn.Module, Configurable):
             plt.imshow(
                 predicted[0][i].astype(np.uint8) * 255, cmap="gray", vmin=0, vmax=255
             )
-            if image_filename and predictions_dir:
-                mask_plot = Image.fromarray(predicted[0][i].astype(np.uint8) * 255)
-                mask_plot.save(os.path.join(predictions_dir, f"{image_filename}_{labels[i]}_segmentation_mask.png"))
             plt.title(labels[i])
             plt.axis("off")
 
         plt.tight_layout()
 
-
         return fig
+    
+    def predict_masks_tiff_probs(
+        self,
+        image_path=None,
+        labels=None,
+        data_transforms=None,
+        predictions_dir = None,
+        description="running prediction for single image",
+    ):
+        """
+        Predicts using a model against for a specified image
+        """
+        # Open the TIF file
+        with rasterio.open(image_path) as image_tiff:
+            # Get the geotransform information
+            image = image_tiff.read()
+
+        # Reshape the data to an RGB image
+        image = np.repeat(image, 3, axis=0)
+        image = np.transpose(image, (1, 2, 0))
+        image_filename = os.path.splitext(os.path.basename(image_path))[0]
+
+        # load the image and apply transformations
+        original_image = copy.deepcopy(image)
+        self.model.eval()
+        if data_transforms:
+            image = data_transforms(image)
+        # check if tensor and convert to batch of size 1, otherwise convert to tensor and then to batch of size 1
+        if torch.is_tensor(image):
+            inputs = image.unsqueeze(0).to(self.device)
+        else:
+            inputs = torch.from_numpy(image).unsqueeze(0).to(self.device)
+        outputs = self(inputs)
+        # check if outputs is OrderedDict for segmentation
+        if isinstance(outputs, collections.abc.Mapping):
+            outputs = outputs["out"]
+
+        predicted_probs, predicted = self.get_predicted(outputs)
+        predicted_probs = list(predicted_probs.cpu().detach().numpy())
+        predicted = list(predicted.cpu().detach().numpy())
+
+        # save masks with probabilities 
+        for i in range(len(labels)):
+            p = predicted_probs[0][i]
+            p = np.reshape(p, (1,) + p.shape)
+            # Create a new GeoTIFF file with the modified pixel data
+            with rasterio.open(os.path.join(predictions_dir, f"{image_filename}_{labels[i]}_segmentation_mask_probs.tif"), 'w', **image_tiff.meta) as dst:
+                # Write the modified pixel data to the new file
+                dst.write(p)
+
+
 
     def detect_objects(
         self,

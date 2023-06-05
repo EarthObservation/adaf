@@ -61,12 +61,6 @@ def make_predictions_on_patches_segmentation(model, patches_folder):
         print(">>> ", file)
         if file.endswith(".tif"):
             image_path = os.path.join(patches_folder, file)
-            image_filename = file
-            make_predictions_on_single_patch_segmentation(model, image_path, image_filename, predictions_dir);
+            model.predict_masks_tiff_probs(image_path = image_path, labels = ['barrow', 'enclosure', 'ringfort'], data_transforms=Transpose(), predictions_dir= predictions_dir);
 
-
-def make_predictions_on_single_patch_segmentation(model, image_path, image_filename, predictions_dir):
-    img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
-    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-    plt.switch_backend('agg')
-    fig = model.predict_masks(image = img, labels = ['barrow', 'enclosure', 'ringfort'], data_transforms=Transpose(), image_filename=image_filename, predictions_dir= predictions_dir);
+   
