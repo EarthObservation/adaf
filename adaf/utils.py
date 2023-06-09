@@ -1,7 +1,10 @@
 import os
 from aitlas.transforms import ResizeV2
 from aitlas.utils import image_loader
-from aitlas.transforms import Transpose
+from aitlas.transforms import MinMaxNormTranspose
+from aitlas.models import HRNet
+from PIL import Image
+import numpy as np
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning) 
@@ -11,8 +14,14 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 def make_predictions_on_single_patch_store_preds(model, image_path, image_filename, predctions_dir):
     labels = [None, 'enclosure', 'barrow', 'ringfort']
     transform = ResizeV2()
-    image = image_loader(image_path)
+    image = Image.open(image_path)
+    image = np.asarray(image)
+    image = image * 255.0
+    image = image.astype(np.float64)  # Convert to double
+    image = Image.fromarray(image).convert('RGB')
+    image = np.asarray(image) / 255.0
     predicted = model.detect_objects_v2(image, labels, transform)
+    print("predicted", predicted)
     predictions_single_patch_str = ""
     labels = [None, 'enclosure', 'barrow', 'ringfort']
     for i in range(0, len(predicted['boxes'])):
@@ -23,8 +32,6 @@ def make_predictions_on_single_patch_store_preds(model, image_path, image_filena
     file = open(predctions_dir+image_filename.split(".")[0]+".txt", "w")
     file.write(predictions_single_patch_str)
     file.close()
-
-    return predictions_single_patch_str
 
 
 def make_predictions_on_patches_object_detection(model, patches_folder):
@@ -67,8 +74,8 @@ def make_predictions_on_patches_segmentation(model, patches_folder):
             model.predict_masks_tiff_probs(
                 image_path=image_path,
                 labels=['barrow', 'enclosure', 'ringfort'],
-                data_transforms=Transpose(),
-                predictions_dir=predictions_dir
+                data_transforms=MinMaxNormTranspose(),
+                predictions_dir= predictions_dir
             )
 
     return predictions_dir
