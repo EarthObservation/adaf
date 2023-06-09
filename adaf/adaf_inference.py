@@ -250,9 +250,9 @@ def object_detection_vectors(path_to_patches, path_to_predictions):
     return output_path.as_posix()
 
 
-def semantic_segmentation_vectors(path_to_predictions):
-    # TODO: Possible parameters
-    threshold = 0.5
+def semantic_segmentation_vectors(path_to_predictions, threshold):
+    # # TODO: Possible parameters
+    # threshold = 0.5
     labels = ["barrow", "ringfort", "enclosure"]  # TODO: Read this from model configuration
 
     # Prepare paths
@@ -274,8 +274,8 @@ def semantic_segmentation_vectors(path_to_predictions):
 
                 prediction = prob_mask.copy()
 
-                feature = prob_mask >= threshold
-                background = prob_mask < threshold
+                feature = prob_mask >= float(threshold)
+                background = prob_mask < float(threshold)
 
                 prediction[feature] = 1
                 prediction[background] = 0
@@ -363,7 +363,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     return out_path
 
 
-def main_routine(dem_path, ml_type, model_path, tile_size_px, nr_processes=1):
+def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
     # Save results to parent folder of input file
     save_dir = Path(dem_path).parent
 
@@ -385,6 +385,7 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, nr_processes=1):
     # shutil.rmtree(vis_path)
 
     if ml_type == "object detection":
+        print("Running object detection")
         # ## 3 ## Run the model
         model_config = {
             "num_classes": 4,  # Number of classes in the dataset
@@ -406,6 +407,7 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, nr_processes=1):
         vector_path = object_detection_vectors(vis_path, predictions_dir)
 
     elif ml_type == "segmentation":
+        print("Running segmentation")
         # ## 3 ## Run the model
         model_config = {
             "num_classes": 3,  # Number of classes in the dataset
@@ -424,7 +426,7 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, nr_processes=1):
             patches_folder=vis_path.as_posix()
         )
         # ## 4 ## Create map
-        vector_path = semantic_segmentation_vectors(predictions_dir)
+        vector_path = semantic_segmentation_vectors(predictions_dir, prob_threshold)
     else:
         raise Exception("Wrong ml_type: choose 'object detection' or 'segmentation'")
 
@@ -451,7 +453,7 @@ if __name__ == "__main__":
     # SEGMENTATION:
     my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\model_semantic_segmentation_BRE_124.tar"
 
-    rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px, nr_processes=6)
+    rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px, prob_threshold=0.5, nr_processes=6)
 
     # rs = object_detection_vectors(
     #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\slrm",
