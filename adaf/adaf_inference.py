@@ -14,7 +14,7 @@ from shapely.geometry import box, shape
 import grid_tools as gt
 from adaf_vis import tiled_processing
 from aitlas.models import FasterRCNN, HRNet
-from utils import make_predictions_on_patches_object_detection, make_predictions_on_patches_segmentation
+from adaf_utils import make_predictions_on_patches_object_detection, make_predictions_on_patches_segmentation
 from vrt import build_vrt_from_list
 
 
@@ -405,6 +405,7 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr
 
         # ## 4 ## Create map
         vector_path = object_detection_vectors(vis_path, predictions_dir)
+        print("Created vector file", vector_path)
 
     elif ml_type == "segmentation":
         print("Running segmentation")
@@ -427,6 +428,7 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr
         )
         # ## 4 ## Create map
         vector_path = semantic_segmentation_vectors(predictions_dir, prob_threshold)
+        print("Created vector file", vector_path)
     else:
         raise Exception("Wrong ml_type: choose 'object detection' or 'segmentation'")
 
@@ -436,6 +438,8 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr
         tif_list = glob.glob((Path(predictions_dir) / f"*{label}*.tif").as_posix())
         vrt_name = save_dir / (Path(predictions_dir).stem + f"_{label}.vrt")
         build_vrt_from_list(tif_list, vrt_name)
+
+    print("\n--\nFINISHED!")
 
     return vector_path
 

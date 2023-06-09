@@ -71,7 +71,7 @@ main_box = widgets.VBox(
 # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
 
 
-def on_button_clicked():
+def on_button_clicked(b):
     fun_output = main_routine(
         inp1.value,
         inp2.value,
