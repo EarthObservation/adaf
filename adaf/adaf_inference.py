@@ -126,10 +126,10 @@ def uniform_grid(extents, crs, spacing_xy, stagger=None):
     tile_w, tile_h = spacing_xy
 
     # Target Aligned Pixels
-    x_min = np.floor(x_min / tile_w) * tile_w
+    # x_min = np.floor(x_min / tile_w) * tile_w
     # bottom = np.floor(extents.bottom / tile_h) * tile_h
     # right = np.ceil(extents.right / tile_w) * tile_w
-    y_max = np.ceil(y_max / tile_h) * tile_h
+    # y_max = np.ceil(y_max / tile_h) * tile_h
     _, bottom, right, _ = extents  # ONLY TOP-LEFT NEEDS TO BE ROUNDED
 
     grid_cells = []
@@ -334,7 +334,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
         # If it doesn't exist, try creating it from raster
         valid_data_outline = gt.poly_from_valid(
             in_file.as_posix(),
-            save_gpkg=save_vis.as_posix()
+            save_gpkg=save_vis
         )
 
     # === STEP 2 ===
@@ -359,7 +359,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
         input_vrt_path=in_file.as_posix(),
         ext_list=tiles_extents,
         nr_processes=nr_processes,
-        ll_dir=save_vis
+        ll_dir=Path(save_vis)
     )
 
     return out_path
