@@ -154,3 +154,4 @@ inference/data*
 # ignore experiment folder
 experiment/
 experiments/
+adaf/_test_inference.py

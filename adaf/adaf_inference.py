@@ -1,19 +1,17 @@
-import rasterio
-import numpy as np
-import geopandas as gpd
-from shapely.geometry import box, shape
-from shapely.affinity import translate
-# from ipywidgets import interact, widgets
-from pathlib import Path
-import grid_tools as gt
-from rasterio.windows import from_bounds
-from rasterio.warp import reproject, Resampling
-from rasterio.features import shapes
-from adaf_vis import tiled_processing
 # import multiprocessing as mp
 # import shutil
 import os
+# from ipywidgets import interact, widgets
+from pathlib import Path
+
+import geopandas as gpd
 import pandas as pd
+import rasterio
+from rasterio.features import shapes
+from shapely.geometry import box, shape
+
+import grid_tools as gt
+from adaf_vis import tiled_processing
 from aitlas.models import FasterRCNN, HRNet
 from utils import make_predictions_on_patches_object_detection, make_predictions_on_patches_segmentation
 
@@ -326,16 +324,10 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
 
     # === STEP 1 ===
     # We need polygon covering valid data
-    vdm_file = list(ds_dir.glob("*_validDataMask*"))
-    if vdm_file:
-        # If validDataMask exists, read it from file
-        valid_data_outline = vdm_file[0]
-    else:
-        # If it doesn't exist, try creating it from raster
-        valid_data_outline = gt.poly_from_valid(
-            in_file.as_posix(),
-            save_gpkg=save_vis
-        )
+    valid_data_outline = gt.poly_from_valid(
+        in_file.as_posix(),
+        save_gpkg=save_vis  # directory where *_validDataMask.gpkg will be stored
+    )
 
     # === STEP 2 ===
     # Create reference grid, filter it and save it to disk
@@ -347,7 +339,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     refgrid_name = in_file.as_posix()[:-4] + "_refgrid.gpkg"
     tiles_extents = gt.filter_by_outline(
         tiles_extents,
-        valid_data_outline.as_posix(),
+        valid_data_outline,
         save_gpkg=True,
         save_path=refgrid_name
     )
@@ -363,21 +355,15 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     )
 
     # TODO remove refgrid and vdm HERE
+    Path(valid_data_outline).unlink()
+    Path(refgrid_name).unlink()
 
     return out_path
 
 
 def main_routine(dem_path, ml_type, model_path, tile_size_px, nr_processes=1):
-    # Prepare directory for saving results
-    # Make sure save folder exist
+    # Save results to parent folder of input file
     save_dir = Path(dem_path).parent
-    # if save_dir.exists():
-    #     dir_status = "already exists"
-    # else:
-    #     save_dir.mkdir(parents=True, exist_ok=True)
-    #     dir_status = "created new folder"
-
-    # Save Geotiff metadata (CRS, etc.)
 
     # ## 1 ## Create visualisation
     vis_path = run_visualisations(
@@ -416,6 +402,7 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, nr_processes=1):
 
         # ## 4 ## Create map
         vector_path = object_detection_vectors(vis_path, predictions_dir)
+
     elif ml_type == "segmentation":
         # ## 3 ## Run the model
         model_config = {

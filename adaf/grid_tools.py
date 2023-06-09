@@ -171,9 +171,12 @@ def poly_from_valid(tif_pth, save_gpkg=None):
     if save_gpkg:
         new_name = tif_pth[:-4] + "_validDataMask.gpkg"
         save_path = Path(save_gpkg) / Path(new_name).name
-        grid.to_file(save_path, driver="GPKG")
+        grid.to_file(save_path.as_posix(), driver="GPKG")
+        save_path = save_path.as_posix()
+    else:
+        save_path = None
 
-    return Path(save_path)
+    return save_path
 
 
 def repair_crs(tif_path):
