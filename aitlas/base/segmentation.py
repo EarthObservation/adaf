@@ -1,11 +1,13 @@
 import logging
 import torch.optim as optim
 import torch
+import torch.nn.functional as F
 
 from .models import BaseModel
 from .schemas import BaseSegmentationClassifierSchema
 from .metrics import SegmentationRunningScore
 from ..utils import DiceLoss
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 

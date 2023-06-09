@@ -489,7 +489,7 @@ class BaseModel(nn.Module, Configurable):
         plt.tight_layout()
 
         return fig
-    
+
     def predict_masks_tiff_probs(
         self,
         image_path=None,
@@ -504,13 +504,15 @@ class BaseModel(nn.Module, Configurable):
         # Open the TIF file
         with rasterio.open(image_path) as image_tiff:
             # Get the geotransform information
-            image = image_tiff.read()
+            img_tiff_data = image_tiff.read()
 
-        # Reshape the data to an RGB image
-        image = np.repeat(image, 3, axis=0)
-        image = np.transpose(image, (1, 2, 0))
+        image = Image.open(image_path)
+        image = np.asarray(image)
+        image = image*255.0
+        image = Image.fromarray(image).convert('RGB')
+        # Convert the PIL Image to a NumPy array
+        image = np.array(image)
         image_filename = os.path.splitext(os.path.basename(image_path))[0]
-
         # load the image and apply transformations
         original_image = copy.deepcopy(image)
         self.model.eval()
@@ -525,11 +527,9 @@ class BaseModel(nn.Module, Configurable):
         # check if outputs is OrderedDict for segmentation
         if isinstance(outputs, collections.abc.Mapping):
             outputs = outputs["out"]
-
         predicted_probs, predicted = self.get_predicted(outputs)
         predicted_probs = list(predicted_probs.cpu().detach().numpy())
         predicted = list(predicted.cpu().detach().numpy())
-
         # save masks with probabilities 
         for i in range(len(labels)):
             p = predicted_probs[0][i]
@@ -538,7 +538,6 @@ class BaseModel(nn.Module, Configurable):
             with rasterio.open(os.path.join(predictions_dir, f"{image_filename}_{labels[i]}_segmentation_mask_probs.tif"), 'w', **image_tiff.meta) as dst:
                 # Write the modified pixel data to the new file
                 dst.write(p)
-
 
 
     def detect_objects(
@@ -617,15 +616,15 @@ class BaseModel(nn.Module, Configurable):
         :return: plot
         """
         # load the image and apply transformations
-        image = image / 255
         self.model.eval()
         if data_transforms:
             image = data_transforms(image)
             original_image = copy.deepcopy(image)
             # image = image.transpose(2, 0, 1)
         # check if tensor and convert to batch of size 1, otherwise convert to tensor and then to batch of size 1
+
         if torch.is_tensor(image):
-            inputs = image.unsqueeze(0).to(self.device)
+            inputs = image.type(torch.FloatTensor).unsqueeze(0).to(self.device)
         else:
             inputs = (
                 torch.from_numpy(image)

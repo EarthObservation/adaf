@@ -11,7 +11,6 @@ from ..base import BaseTransforms
 
 class MinMaxNormTranspose(BaseTransforms):
     def __call__(self, sample):
-        print(sample.shape)
         return torch.tensor(sample.transpose(2, 0, 1), dtype=torch.float32) / 255
 
 

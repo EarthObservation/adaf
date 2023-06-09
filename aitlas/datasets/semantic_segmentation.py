@@ -50,6 +50,7 @@ class SemanticSegmentationDataset(BaseDataset):
         return image, mask
 
     def load_dataset(self, data_dir, csv_file=None):
+        print("base semantic segmentation load dataset")
         if not self.labels:
             raise ValueError("You need to provide the list of labels for the dataset")
         with open(csv_file, "r") as f:

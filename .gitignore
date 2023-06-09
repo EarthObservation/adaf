@@ -35,6 +35,11 @@ TII_LIDAR_DATA
 inference/data
 seg_SLRM
 stuff_from_server
+experiments_jupyter_notebooks
+prepare_tii_segmentation_data
+split_test_clip.ipynb
+test_formats.ipynb
+test_tii_binary.py
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

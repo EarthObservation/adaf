@@ -6,6 +6,7 @@ from .amazon_rainforest import AmazonRainforestDataset
 from .big_earth_net import BigEarthNetDataset
 from .brazilian_coffee_scenes import BrazilianCoffeeScenesDataset
 from .tii_lidar import TiiLIDARDataset
+from .tii_lidar_binary_save_ivica import TiiLIDARDatasetBinary
 
 # Datasets for crop type prediction
 from .breizhcrops import BreizhCropsDataset
