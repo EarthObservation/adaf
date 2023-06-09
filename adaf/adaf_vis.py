@@ -230,6 +230,7 @@ def compute_save_low_levels(
                 max_norm=0.5,
                 normalization="value"
             )
+            out_slrm[np.isnan(out_slrm)] = 0
             vis_out = {
                 vis_type: out_slrm
             }
@@ -355,7 +356,7 @@ def compute_save_low_levels(
             out_profile = dict_arrays["profile"].copy()
             out_profile.update(dtype=arr_out.dtype,
                                count=arr_out.shape[0],
-                               nodata=np.nan)
+                               nodata=0)  # TODO: was NaN, use 0 for SLRM in ADAF
             with rasterio.open(arr_save_path, "w", **out_profile) as dst:
                 dst.write(arr_out)
 
