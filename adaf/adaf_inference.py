@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 import geopandas as gpd
+import glob
 import pandas as pd
 import rasterio
 from rasterio.features import shapes
@@ -14,6 +15,7 @@ import grid_tools as gt
 from adaf_vis import tiled_processing
 from aitlas.models import FasterRCNN, HRNet
 from utils import make_predictions_on_patches_object_detection, make_predictions_on_patches_segmentation
+from vrt import build_vrt_from_list
 
 
 # def create_patches(source_path, patch_size_px, save_dir, nr_processes):
@@ -426,15 +428,22 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, nr_processes=1):
     else:
         raise Exception("Wrong ml_type: choose 'object detection' or 'segmentation'")
 
+    # ## 5 ## Create VRT file for predictions
+    for label in ["barrow", "ringfort", "enclosure"]:
+        print("Creating vrt for", label)
+        tif_list = glob.glob((Path(predictions_dir) / f"*{label}*.tif").as_posix())
+        vrt_name = save_dir / (Path(predictions_dir).stem + f"_{label}.vrt")
+        build_vrt_from_list(tif_list, vrt_name)
+
     return vector_path
 
 
 if __name__ == "__main__":
-    my_file = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small\ISA-147_small.tif"
+    my_file = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small_debug\ISA-147_small.tif"
 
     my_ml_type = "segmentation"  # "segmentation" or "object detection"
 
-    my_tile_size_px = 2048
+    my_tile_size_px = 512
 
     # Specify the path to the model
     # OBJECT DETECTION:
@@ -442,18 +451,18 @@ if __name__ == "__main__":
     # SEGMENTATION:
     my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\model_semantic_segmentation_BRE_124.tar"
 
-    # rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px, nr_processes=6)
+    rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px, nr_processes=6)
 
     # rs = object_detection_vectors(
     #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\slrm",
     #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\predictions_object_detection"
     # )
 
-    rs = run_visualisations(
-        r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small_debug\ISA-147_small.tif",
-        1024,
-        save_dir=r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small_debug",
-        nr_processes=6
-    )
+    # rs = run_visualisations(
+    #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small_debug\ISA-147_small.tif",
+    #     1024,
+    #     save_dir=r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small_debug",
+    #     nr_processes=6
+    # )
 
     print(rs)

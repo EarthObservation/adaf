@@ -87,6 +87,14 @@ def build_vrt(ds_dir, vrt_name):
     return vrt_path
 
 
+def build_vrt_from_list(tif_list, vrt_path):
+    vrt_options = gdal.BuildVRTOptions()
+    my_vrt = gdal.BuildVRT(vrt_path.as_posix(), tif_list, options=vrt_options)
+    my_vrt = None
+
+    return vrt_path
+
+
 if __name__ == "__main__":
 
     # # VRT
