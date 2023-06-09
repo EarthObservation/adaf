@@ -14,8 +14,8 @@ from adaf_vis import tiled_processing
 # import shutil
 import os
 import pandas as pd
-from aitlas.models import FasterRCNN
-from utils import make_predictions_on_patches_object_detection
+from aitlas.models import FasterRCNN, HRNet
+from utils import make_predictions_on_patches_object_detection, make_predictions_on_patches_segmentation
 
 
 # def create_patches(source_path, patch_size_px, save_dir, nr_processes):
@@ -251,16 +251,18 @@ def object_detection_vectors(path_to_patches, path_to_predictions):
 
 
 def semantic_segmentation_vectors(path_to_predictions):
+    # TODO: Possible parameters
     threshold = 0.5
-    labels = ["barrow", "ringfort", "enclosure"]
+    labels = ["barrow", "ringfort", "enclosure"]  # TODO: Read this from model configuration
 
-    # Prepare output path (GPKG file in the data folder)
-    output_path = Path(path_to_predictions).parent / "semantic_segmentation.gpkg"
-    output_path = output_path.as_posix()
+    # Prepare paths
+    path_to_predictions = Path(path_to_predictions)
+    # Output path (GPKG file in the data folder)
+    output_path = path_to_predictions.parent / "semantic_segmentation.gpkg"
 
     grids = []
     for label in labels:
-        tif_list = list(Path(path_to_predictions).glob(f"*{label}*.tif"))
+        tif_list = list(path_to_predictions.glob(f"*{label}*.tif"))
 
         # file = tif_list[4]
         poly = []
@@ -294,9 +296,9 @@ def semantic_segmentation_vectors(path_to_predictions):
             grids.append(grid)
 
     grids = gpd.GeoDataFrame(pd.concat(grids, ignore_index=True), crs=crs)
-    grids.to_file(output_path, driver="GPKG")
+    grids.to_file(output_path.as_posix(), driver="GPKG")
 
-    return output_path
+    return output_path.as_posix()
 
 
 def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
@@ -363,7 +365,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     return out_path
 
 
-def main_routine(dem_path, model_path, tile_size_px, save_dir, nr_processes=1):
+def main_routine(dem_path, ml_type, model_path, tile_size_px, save_dir, nr_processes=1):
     # Prepare directory for saving results
     # Make sure save folder exist
     save_dir = Path(save_dir)
@@ -392,43 +394,71 @@ def main_routine(dem_path, model_path, tile_size_px, save_dir, nr_processes=1):
     # )
     # shutil.rmtree(vis_path)
 
-    # ## 3 ## Run the model
-    model_config = {
-        "num_classes": 4,  # Number of classes in the dataset
-        "learning_rate": 0.001,  # Learning rate for training
-        "pretrained": True,  # Whether to use a pretrained model or not
-        "use_cuda": False,  # Set to True if you want to use GPU acceleration
-        "metrics": ["map"]  # Evaluation metrics to be used
-    }
-    model = FasterRCNN(model_config)
-    model.prepare()
-    model.load_model(model_path)
-    print("Model successfully loaded.")
-    predictions_dir = make_predictions_on_patches_object_detection(
-        model=model,
-        patches_folder=vis_path.as_posix()
-    )
+    if ml_type == "object detection":
+        # ## 3 ## Run the model
+        model_config = {
+            "num_classes": 4,  # Number of classes in the dataset
+            "learning_rate": 0.001,  # Learning rate for training
+            "pretrained": True,  # Whether to use a pretrained model or not
+            "use_cuda": False,  # Set to True if you want to use GPU acceleration
+            "metrics": ["map"]  # Evaluation metrics to be used
+        }
+        model = FasterRCNN(model_config)
+        model.prepare()
+        model.load_model(model_path)
+        print("Model successfully loaded.")
+        predictions_dir = make_predictions_on_patches_object_detection(
+            model=model,
+            patches_folder=vis_path.as_posix()
+        )
 
-    # ## 4 ## Create map
-    vector_path = object_detection_vectors(vis_path, predictions_dir)
+        # ## 4 ## Create map
+        vector_path = object_detection_vectors(vis_path, predictions_dir)
+    elif ml_type == "segmentation":
+        # ## 3 ## Run the model
+        model_config = {
+            "num_classes": 3,  # Number of classes in the dataset
+            "learning_rate": 0.0001,  # Learning rate for training
+            "pretrained": True,  # Whether to use a pretrained model or not
+            "use_cuda": False,  # Set to True if you want to use GPU acceleration
+            "threshold": 0.5,
+            "metrics": ["map"]  # Evaluation metrics to be used
+        }
+        model = HRNet(model_config)
+        model.prepare()
+        model.load_model(model_path)
+        print("Model successfully loaded.")
+        predictions_dir = make_predictions_on_patches_segmentation(
+            model=model,
+            patches_folder=vis_path.as_posix()
+        )
+        # ## 4 ## Create map
+        vector_path = semantic_segmentation_vectors(predictions_dir)
+    else:
+        raise Exception("Wrong ml_type: choose 'object detection' or 'segmentation'")
 
     return vector_path
 
 
 if __name__ == "__main__":
-    my_file = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\ISA-147_Ballyragget_dem_05m.tif"
-    my_results = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147"
+    my_file = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small\ISA-147_small.tif"
+    my_results = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small"
 
-    my_tile_size_px = 512
+    my_ml_type = "segmentation"  # "segmentation" or "object detection"
+
+    my_tile_size_px = 2048
 
     # Specify the path to the model
-    my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\model_object_detection_BRE_12.tar"
+    # OBJECT DETECTION:
+    # my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\model_object_detection_BRE_12.tar"
+    # SEGMENTATION:
+    my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\model_semantic_segmentation_BRE_124.tar"
 
-    # rs = main_routine(my_file, my_model_path, my_tile_size_px, my_results, nr_processes=6)
+    rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px, my_results, nr_processes=6)
 
-    rs = object_detection_vectors(
-        r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\slrm",
-        r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\predictions_object_detection"
-    )
+    # rs = object_detection_vectors(
+    #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\slrm",
+    #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\predictions_object_detection"
+    # )
 
     print(rs)

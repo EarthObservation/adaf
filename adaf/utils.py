@@ -71,4 +71,6 @@ def make_predictions_on_patches_segmentation(model, patches_folder):
                 predictions_dir=predictions_dir
             )
 
+    return predictions_dir
+
 
