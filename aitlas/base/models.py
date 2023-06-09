@@ -616,15 +616,15 @@ class BaseModel(nn.Module, Configurable):
         :return: plot
         """
         # load the image and apply transformations
-        image = image / 255
         self.model.eval()
         if data_transforms:
             image = data_transforms(image)
             original_image = copy.deepcopy(image)
             # image = image.transpose(2, 0, 1)
         # check if tensor and convert to batch of size 1, otherwise convert to tensor and then to batch of size 1
+
         if torch.is_tensor(image):
-            inputs = image.unsqueeze(0).to(self.device)
+            inputs = image.type(torch.FloatTensor).unsqueeze(0).to(self.device)
         else:
             inputs = (
                 torch.from_numpy(image)
