@@ -280,7 +280,6 @@ class MultiLabelRunningScore(RunningScore):
 
         iou_per_class = tp / (tp + fp + fn + 1e-15)
         iou = tp_total / (tp_total + fp_total + fn_total + 1e-15)
-
         return {
             "IOU": float(iou),
             "IOU mean": np.mean(iou_per_class),

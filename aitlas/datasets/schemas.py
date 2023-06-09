@@ -54,6 +54,17 @@ class SegmentationDatasetSchema(BaseDatasetSchema):
         missing=None, description="CSV file on disk", example="./data/train.csv",
     )
 
+# class TiiLIDARDatasetBinarySchema(BaseDatasetSchema):
+#     data_dir = fields.String(
+#         missing="/", description="Dataset path on disk", example="./data/BigEarthNet/"
+#     )
+#     masks_dir = fields.String(
+#         missing="/", description="Segmentation masks path on disk", example="./segmentation_masks/BigEarthNet/"
+#     )
+#     vizuelization_type = fields.String(
+#         missing=None, description="Vizuelization type name", example="SLRM"
+#     )
+
 
 class ObjectDetectionPascalDatasetSchema(BaseDatasetSchema):
     imageset_file = fields.String(
