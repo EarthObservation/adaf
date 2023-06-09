@@ -155,7 +155,7 @@ def tiled_processing(
     t1 = time.time() - t0
     print(f"Done with computing low-level visualizations in {round(t1/60, ndigits=None)} min.")
 
-    return out_path
+    return ds_dir
 
 
 # function which is multiprocessing

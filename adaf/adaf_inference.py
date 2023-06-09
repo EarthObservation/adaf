@@ -1,103 +1,108 @@
 import rasterio
 import numpy as np
 import geopandas as gpd
-from shapely.geometry import box
+from shapely.geometry import box, shape
 from shapely.affinity import translate
 # from ipywidgets import interact, widgets
 from pathlib import Path
 import grid_tools as gt
 from rasterio.windows import from_bounds
 from rasterio.warp import reproject, Resampling
+from rasterio.features import shapes
 from adaf_vis import tiled_processing
-import multiprocessing as mp
-import shutil
+# import multiprocessing as mp
+# import shutil
+import os
+import pandas as pd
+from aitlas.models import FasterRCNN
+from utils import make_predictions_on_patches_object_detection
 
 
-def create_patches(source_path, patch_size_px, save_dir, nr_processes):
-    multi_p = False
-
-    # Prepare paths
-    source_path = Path(source_path)
-    ds_path = source_path.parent
-    # Folder for patches
-    patch_dir = save_dir / "ml_patches"
-    patch_dir.mkdir(parents=True, exist_ok=True)
-
-    # Read metadata from source image
-    with rasterio.open(source_path) as src:
-        ds_res = src.res[0]
-        ds_crs = src.crs
-        ds_bounds = src.bounds
-
-    # -------- CREATE GRID --------
-    stride = 0.5
-    patch_size = (patch_size_px * ds_res, patch_size_px * ds_res)
-    stagger = stride * patch_size[0]
-
-    grid = uniform_grid(ds_bounds, ds_crs, patch_size, stagger)
-
-    # Filter grid (remove patches that fall outside scanned area)
-    vdm_path = list(ds_path.glob("*_validDataMask.*"))[0]
-    vdm = gpd.read_file(vdm_path)
-    # Make sure Valid Data Mask is in a correct CRS
-    if vdm.crs.to_epsg() != ds_crs.to_epsg():
-        vdm = vdm.to_crs(ds_crs)
-
-    vdm_filter = grid["geometry"].intersects(vdm.geometry[0])
-    grid = grid[vdm_filter].reset_index(drop=True)
-
-    if multi_p:
-        # Multiprocessing run
-        # TODO: Multiprocessing not working?!
-        # Create rasters/files and save them
-        input_process_list = []
-        for i, one_tile in grid.iterrows():
-            save_file = patch_dir / f"ml_patch_{i+1:06d}.tif"
-            out_nodata = 0
-            resample = False
-            input_process_list.append(
-                (
-                    one_tile["geometry"],
-                    save_file,
-                    source_path,
-                    out_nodata,
-                    resample
-                )
-            )
-        with mp.Pool(nr_processes) as p:
-            realist = [p.apply_async(clip_tile, r) for r in input_process_list]
-    else:
-        realist = [
-            clip_tile(
-                p["geometry"],
-                patch_dir / f"ml_patch_{i + 1:06d}.tif",
-                source_path,
-                out_nodata=0,
-                resample=False
-            ) for i, p in grid.iterrows()
-        ]
-        # # -------- CLIP TILES --------
-        # for i, one_tile in grid.iterrows():
-        #     # # Source raster path
-        #     # src_pth = list(ds_path.glob(f"*{vis_type}.vrt"))[0]
-        #     out_nodata = 0
-        #     # out_nodata = -999
-        #
-        #     save_file = patch_dir / f"ml_patch_{i+1:06d}.tif"
-        #
-        #     # Create rasters/files and save them
-        #     clip_result = clip_tile(
-        #         one_tile["geometry"],
-        #         save_file,
-        #         source_path,
-        #         out_nodata=out_nodata,
-        #         resample=False
-        #     )
-        #     print(clip_result)
-
-    output = "#  - Finished creating " + str(len(grid)) + " patches for " + ds_path.stem
-
-    return output
+# def create_patches(source_path, patch_size_px, save_dir, nr_processes):
+#     multi_p = False
+#
+#     # Prepare paths
+#     source_path = Path(source_path)
+#     ds_path = source_path.parent
+#     # Folder for patches
+#     patch_dir = save_dir / "ml_patches"
+#     patch_dir.mkdir(parents=True, exist_ok=True)
+#
+#     # Read metadata from source image
+#     with rasterio.open(source_path) as src:
+#         ds_res = src.res[0]
+#         ds_crs = src.crs
+#         ds_bounds = src.bounds
+#
+#     # -------- CREATE GRID --------
+#     stride = 0.5
+#     patch_size = (patch_size_px * ds_res, patch_size_px * ds_res)
+#     stagger = stride * patch_size[0]
+#
+#     grid = uniform_grid(ds_bounds, ds_crs, patch_size, stagger)
+#
+#     # Filter grid (remove patches that fall outside scanned area)
+#     vdm_path = list(ds_path.glob("*_validDataMask.*"))[0]
+#     vdm = gpd.read_file(vdm_path)
+#     # Make sure Valid Data Mask is in a correct CRS
+#     if vdm.crs.to_epsg() != ds_crs.to_epsg():
+#         vdm = vdm.to_crs(ds_crs)
+#
+#     vdm_filter = grid["geometry"].intersects(vdm.geometry[0])
+#     grid = grid[vdm_filter].reset_index(drop=True)
+#
+#     if multi_p:
+#         # Multiprocessing run
+#         # TODO: Multiprocessing not working?!
+#         # Create rasters/files and save them
+#         input_process_list = []
+#         for i, one_tile in grid.iterrows():
+#             save_file = patch_dir / f"ml_patch_{i+1:06d}.tif"
+#             out_nodata = 0
+#             resample = False
+#             input_process_list.append(
+#                 (
+#                     one_tile["geometry"],
+#                     save_file,
+#                     source_path,
+#                     out_nodata,
+#                     resample
+#                 )
+#             )
+#         with mp.Pool(nr_processes) as p:
+#             realist = [p.apply_async(clip_tile, r) for r in input_process_list]
+#     else:
+#         realist = [
+#             clip_tile(
+#                 p["geometry"],
+#                 patch_dir / f"ml_patch_{i + 1:06d}.tif",
+#                 source_path,
+#                 out_nodata=0,
+#                 resample=False
+#             ) for i, p in grid.iterrows()
+#         ]
+#         # # -------- CLIP TILES --------
+#         # for i, one_tile in grid.iterrows():
+#         #     # # Source raster path
+#         #     # src_pth = list(ds_path.glob(f"*{vis_type}.vrt"))[0]
+#         #     out_nodata = 0
+#         #     # out_nodata = -999
+#         #
+#         #     save_file = patch_dir / f"ml_patch_{i+1:06d}.tif"
+#         #
+#         #     # Create rasters/files and save them
+#         #     clip_result = clip_tile(
+#         #         one_tile["geometry"],
+#         #         save_file,
+#         #         source_path,
+#         #         out_nodata=out_nodata,
+#         #         resample=False
+#         #     )
+#         #     print(clip_result)
+#
+#     output = "#  - Finished creating " + str(len(grid)) + " patches for " + ds_path.stem
+#
+#     return output
 
 
 def uniform_grid(extents, crs, spacing_xy, stagger=None):
@@ -199,6 +204,101 @@ def clip_tile(poly, file_path, src_path, out_nodata=0, resample=False):
     return file_path
 
 
+def object_detection_vectors(path_to_patches, path_to_predictions):
+    # Make sure paths are in Path object!
+    path_to_patches = Path(path_to_patches)
+    path_to_predictions = Path(path_to_predictions)
+    # Prepare output path (GPKG file in the data folder)
+    output_path = path_to_patches.parent / "object_detection.gpkg"
+
+    appended_data = []
+    for file in os.listdir(path_to_predictions):
+        # Set path to individual PREDICTIONS FILE
+        file_path = path_to_predictions / file
+
+        # Only read files that are not empty
+        if not os.stat(file_path).st_size == 0:
+            # Find PATCH that belongs to the PREDICTIONS file
+            patch_path = path_to_patches / (file[:-3] + "tif")
+
+            # Arrays are indexed from the top-left corner, so we need minx and maxy
+            with rasterio.open(patch_path) as src:
+                crs = src.crs
+                res = src.res[0]
+                x_min = src.transform.c
+                y_max = src.transform.f
+
+            # Read predictions from TXT file
+            data = pd.read_csv(file_path, sep=" ", header=None)
+            data.columns = ["x0", "y0", "x1", "y1", "label", "score"]
+
+            data.x0 = x_min + (res * data.x0)
+            data.x1 = x_min + (res * data.x1)
+            data.y0 = y_max - (res * data.y0)
+            data.y1 = y_max - (res * data.y1)
+
+            data["geometry"] = [box(*a) for a in zip(data.x0, data.y0, data.x1, data.y1)]
+            data.drop(columns=["x0", "y0", "x1", "y1"], inplace=True)
+
+            appended_data.append(data)
+
+    appended_data = pd.concat(appended_data)
+
+    appended_data = gpd.GeoDataFrame(appended_data, columns=["label", "score", 'geometry'], crs=crs)
+    appended_data.to_file(output_path.as_posix(), driver="GPKG")
+
+    return output_path.as_posix()
+
+
+def semantic_segmentation_vectors(path_to_predictions):
+    threshold = 0.5
+    labels = ["barrow", "ringfort", "enclosure"]
+
+    # Prepare output path (GPKG file in the data folder)
+    output_path = Path(path_to_predictions).parent / "semantic_segmentation.gpkg"
+    output_path = output_path.as_posix()
+
+    grids = []
+    for label in labels:
+        tif_list = list(Path(path_to_predictions).glob(f"*{label}*.tif"))
+
+        # file = tif_list[4]
+        poly = []
+        for file in tif_list:
+            with rasterio.open(file) as src:
+                prob_mask = src.read()
+                transform = src.transform
+                crs = src.crs
+
+                prediction = prob_mask.copy()
+
+                feature = prob_mask >= threshold
+                background = prob_mask < threshold
+
+                prediction[feature] = 1
+                prediction[background] = 0
+
+                # Outputs a list of (polygon, value) tuples
+                output = list(shapes(prediction, transform=transform))
+
+                # Find polygon covering valid data (value = 1) and transform to GDF friendly format
+                for polygon, value in output:
+                    if value == 1:
+                        poly.append(shape(polygon))
+
+        # Make Geodataframe
+        if poly:
+            grid = gpd.GeoDataFrame(poly, columns=['geometry'], crs=crs)
+            grid = grid.dissolve().explode(ignore_index=True)
+            grid["label"] = label
+            grids.append(grid)
+
+    grids = gpd.GeoDataFrame(pd.concat(grids, ignore_index=True), crs=crs)
+    grids.to_file(output_path, driver="GPKG")
+
+    return output_path
+
+
 def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     """
 
@@ -218,8 +318,9 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     in_file = Path(dem_path)
     ds_dir = in_file.parent
 
-    save_vis = save_dir / "vis"
-    save_vis.mkdir(parents=True, exist_ok=True)
+    # save_vis = save_dir / "vis"
+    # save_vis.mkdir(parents=True, exist_ok=True)
+    save_vis = save_dir  # TODO: fihgure out folder structure for outputs
 
     # === STEP 1 ===
     # We need polygon covering valid data
@@ -262,7 +363,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     return out_path
 
 
-def main_routine(dem_path, patch_size_px, save_dir, nr_processes=1):
+def main_routine(dem_path, model_path, tile_size_px, save_dir, nr_processes=1):
     # Prepare directory for saving results
     # Make sure save folder exist
     save_dir = Path(save_dir)
@@ -272,12 +373,12 @@ def main_routine(dem_path, patch_size_px, save_dir, nr_processes=1):
         save_dir.mkdir(parents=True, exist_ok=True)
         dir_status = "created new folder"
 
-    # Save Geotif metadata (CRS, etc.)
+    # Save Geotiff metadata (CRS, etc.)
 
     # ## 1 ## Create visualisation
     vis_path = run_visualisations(
         dem_path,
-        4000,
+        tile_size_px,
         save_dir=save_dir,
         nr_processes=nr_processes
     )
@@ -292,20 +393,42 @@ def main_routine(dem_path, patch_size_px, save_dir, nr_processes=1):
     # shutil.rmtree(vis_path)
 
     # ## 3 ## Run the model
-
-    # HERE IS AiTLAS
+    model_config = {
+        "num_classes": 4,  # Number of classes in the dataset
+        "learning_rate": 0.001,  # Learning rate for training
+        "pretrained": True,  # Whether to use a pretrained model or not
+        "use_cuda": False,  # Set to True if you want to use GPU acceleration
+        "metrics": ["map"]  # Evaluation metrics to be used
+    }
+    model = FasterRCNN(model_config)
+    model.prepare()
+    model.load_model(model_path)
+    print("Model successfully loaded.")
+    predictions_dir = make_predictions_on_patches_object_detection(
+        model=model,
+        patches_folder=vis_path.as_posix()
+    )
 
     # ## 4 ## Create map
+    vector_path = object_detection_vectors(vis_path, predictions_dir)
 
-    return vis_path
+    return vector_path
 
 
 if __name__ == "__main__":
-    my_file = r"C:\Users\ncoz\GitHub\TII-demo\data\ISA-15_Kilkee\ISA-15_Kilkee_dem_05m.vrt"
-    my_results = r"C:\Users\ncoz\GitHub\TII-demo\results"
+    my_file = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\ISA-147_Ballyragget_dem_05m.tif"
+    my_results = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147"
 
-    my_patch_size = 256
+    my_tile_size_px = 512
 
-    rs = main_routine(my_file, my_patch_size, my_results, nr_processes=6)
+    # Specify the path to the model
+    my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\model_object_detection_BRE_12.tar"
+
+    # rs = main_routine(my_file, my_model_path, my_tile_size_px, my_results, nr_processes=6)
+
+    rs = object_detection_vectors(
+        r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\slrm",
+        r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\predictions_object_detection"
+    )
 
     print(rs)

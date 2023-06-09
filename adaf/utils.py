@@ -35,16 +35,14 @@ def make_predictions_on_patches_object_detection(model, patches_folder):
     print("Generating predictions:")
     if not os.path.isdir(predictions_dir):
         os.makedirs(predictions_dir)
-
-    out_str = ""
     for file in os.listdir(patches_folder):
         print(">>> ", file)
         if file.endswith(".tif"):
             image_path = os.path.join(patches_folder, file)
             image_filename = file
-            out_str += make_predictions_on_single_patch_store_preds(model, image_path, image_filename, predictions_dir)
+            make_predictions_on_single_patch_store_preds(model, image_path, image_filename, predictions_dir)
 
-    return out_str
+    return predictions_dir
 
 
 def make_predictions_on_single_patch_show_detected_objects(model, image_path):
@@ -66,6 +64,11 @@ def make_predictions_on_patches_segmentation(model, patches_folder):
         print(">>> ", file)
         if file.endswith(".tif"):
             image_path = os.path.join(patches_folder, file)
-            model.predict_masks_tiff_probs(image_path = image_path, labels = ['barrow', 'enclosure', 'ringfort'], data_transforms=Transpose(), predictions_dir= predictions_dir);
+            model.predict_masks_tiff_probs(
+                image_path=image_path,
+                labels=['barrow', 'enclosure', 'ringfort'],
+                data_transforms=Transpose(),
+                predictions_dir=predictions_dir
+            )
 
-   
+
