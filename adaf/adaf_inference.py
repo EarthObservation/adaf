@@ -365,15 +365,15 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     return out_path
 
 
-def main_routine(dem_path, ml_type, model_path, tile_size_px, save_dir, nr_processes=1):
+def main_routine(dem_path, ml_type, model_path, tile_size_px, nr_processes=1):
     # Prepare directory for saving results
     # Make sure save folder exist
-    save_dir = Path(save_dir)
-    if save_dir.exists():
-        dir_status = "already exists"
-    else:
-        save_dir.mkdir(parents=True, exist_ok=True)
-        dir_status = "created new folder"
+    save_dir = Path(dem_path).parent
+    # if save_dir.exists():
+    #     dir_status = "already exists"
+    # else:
+    #     save_dir.mkdir(parents=True, exist_ok=True)
+    #     dir_status = "created new folder"
 
     # Save Geotiff metadata (CRS, etc.)
 
@@ -381,7 +381,7 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, save_dir, nr_proce
     vis_path = run_visualisations(
         dem_path,
         tile_size_px,
-        save_dir=save_dir,
+        save_dir=save_dir.as_posix(),
         nr_processes=nr_processes
     )
 
@@ -442,7 +442,6 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, save_dir, nr_proce
 
 if __name__ == "__main__":
     my_file = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small\ISA-147_small.tif"
-    my_results = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small"
 
     my_ml_type = "segmentation"  # "segmentation" or "object detection"
 
@@ -454,7 +453,7 @@ if __name__ == "__main__":
     # SEGMENTATION:
     my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\model_semantic_segmentation_BRE_124.tar"
 
-    rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px, my_results, nr_processes=6)
+    rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px, nr_processes=6)
 
     # rs = object_detection_vectors(
     #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\slrm",
