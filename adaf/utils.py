@@ -52,13 +52,6 @@ def make_predictions_on_patches_object_detection(model, patches_folder):
     return predictions_dir
 
 
-def make_predictions_on_single_patch_show_detected_objects(model, image_path):
-    labels = [None, 'enclosure', 'barrow', 'ringfort']
-    transform = ResizeV2()
-    image = image_loader(image_path)
-    fig = model.detect_objects(image, labels, transform)
-
-
 def make_predictions_on_patches_segmentation(model, patches_folder):
     predictions_dir = patches_folder.split("/")[:-1]
     predictions_dir.append("predictions_segmentation/")
@@ -75,7 +68,7 @@ def make_predictions_on_patches_segmentation(model, patches_folder):
                 image_path=image_path,
                 labels=['barrow', 'enclosure', 'ringfort'],
                 data_transforms=MinMaxNormTranspose(),
-                predictions_dir= predictions_dir
+                predictions_dir=predictions_dir
             )
 
     return predictions_dir
