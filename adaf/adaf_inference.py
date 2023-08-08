@@ -205,7 +205,23 @@ from vrt import build_vrt_from_list
 
 
 def object_detection_vectors(path_to_patches, path_to_predictions):
-    # Make sure paths are in Path object!
+    """Converts object detection bounding boxes from text to vector format.
+
+    Parameters
+    ----------
+    path_to_patches : str or pathlib.Path
+        Path to the directory with patches. Each prediction file (txt) corresponds to a patch file (tif), the function
+        reads the geospatial metadata from the patch, to use them for geo-referencing the bounding box polygons.
+        Adds two probability score and class label attributes to each polygon.
+    path_to_predictions : str or pathlib.Path
+        Path to directory with predictions, txt file, each line contains one predicted feature (multiple lines possible)
+
+    Returns
+    -------
+    output_path : str
+        Path to vector file.
+    """
+    # Use Path from pathlib
     path_to_patches = Path(path_to_patches)
     path_to_predictions = Path(path_to_predictions)
     # Prepare output path (GPKG file in the data folder)
@@ -251,11 +267,23 @@ def object_detection_vectors(path_to_patches, path_to_predictions):
 
 
 def semantic_segmentation_vectors(path_to_predictions, threshold):
-    # # TODO: Possible parameters
-    # threshold = 0.5
+    """Converts semantic segmentation probability masks to polygons using a threshold.
+
+    Parameters
+    ----------
+    path_to_predictions : str or pathlib.Path
+        Path to the probability masks (tif format)
+    threshold : float
+        Probability threshold for predictions.
+
+    Returns
+    -------
+    output_path : str
+        Path to vector file.
+    """
     labels = ["barrow", "ringfort", "enclosure"]  # TODO: Read this from model configuration
 
-    # Prepare paths
+    # Prepare paths, use Path from pathlib
     path_to_predictions = Path(path_to_predictions)
     # Output path (GPKG file in the data folder)
     output_path = path_to_predictions.parent / "semantic_segmentation.gpkg"
