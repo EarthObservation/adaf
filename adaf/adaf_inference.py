@@ -271,7 +271,7 @@ def object_detection_vectors(path_to_patches, path_to_predictions):
     return output_path.as_posix()
 
 
-def semantic_segmentation_vectors(path_to_predictions, threshold):
+def semantic_segmentation_vectors(path_to_predictions, threshold=0.5):
     """Converts semantic segmentation probability masks to polygons using a threshold.
 
     Parameters
@@ -403,16 +403,21 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     return out_path
 
 
-def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
+def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold):
     # Save results to parent folder of input file
     save_dir = Path(dem_path).parent
+
+    # Determine nr_processes from available CPUs (leave two free)
+    my_cpus = os.cpu_count() - 2
+    if my_cpus < 1:
+        my_cpus = 1
 
     # ## 1 ## Create visualisation
     vis_path = run_visualisations(
         dem_path,
         tile_size_px,
         save_dir=save_dir.as_posix(),
-        nr_processes=nr_processes
+        nr_processes=my_cpus
     )
 
     # # ## 2 ## Create patches
@@ -485,19 +490,19 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr
 
 
 if __name__ == "__main__":
-    my_file = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small_debug\ISA-147_small.tif"
+    my_file = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\archaeology1_TIN\135000_296000_archaeology1_TIN.tif"
 
     my_ml_type = "segmentation"  # "segmentation" or "object detection"
 
-    my_tile_size_px = 512
+    my_tile_size_px = 1024
 
     # Specify the path to the model
     # OBJECT DETECTION:
     # my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\model_object_detection_BRE_12.tar"
     # SEGMENTATION:
-    my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\model_semantic_segmentation_BRE_124.tar"
+    my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\models\model_semantic_segmentation_BRE_124.tar"
 
-    rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px, prob_threshold=0.5, nr_processes=6)
+    rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px, prob_threshold=0.5)
 
     # rs = object_detection_vectors(
     #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\slrm",
