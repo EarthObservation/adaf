@@ -256,11 +256,16 @@ def object_detection_vectors(path_to_patches, path_to_predictions):
             data["geometry"] = [box(*a) for a in zip(data.x0, data.y0, data.x1, data.y1)]
             data.drop(columns=["x0", "y0", "x1", "y1"], inplace=True)
 
+            data["ds"] = Path(file).stem.split("_")[0] # ANA, check here if the correct part of the patch name is selected
+
             appended_data.append(data)
 
     appended_data = pd.concat(appended_data)
 
     appended_data = gpd.GeoDataFrame(appended_data, columns=["label", "score", 'geometry'], crs=crs)
+
+    appended_data = appended_data.dissolve(by='ds').explode(index_parts=False).reset_index(drop=False)
+
     appended_data.to_file(output_path.as_posix(), driver="GPKG")
 
     return output_path.as_posix()
@@ -293,7 +298,7 @@ def semantic_segmentation_vectors(path_to_predictions, threshold):
         tif_list = list(path_to_predictions.glob(f"*{label}*.tif"))
 
         # file = tif_list[4]
-        poly = []
+
         for file in tif_list:
             with rasterio.open(file) as src:
                 prob_mask = src.read()
@@ -312,25 +317,32 @@ def semantic_segmentation_vectors(path_to_predictions, threshold):
                 output = list(shapes(prediction, transform=transform))
 
                 # Find polygon covering valid data (value = 1) and transform to GDF friendly format
+                poly = []
                 for polygon, value in output:
                     if value == 1:
                         poly.append(shape(polygon))
 
-        # Make Geodataframe
-        if poly:
-            grid = gpd.GeoDataFrame(poly, columns=['geometry'], crs=crs)
-            grid = grid.dissolve().explode(ignore_index=True)
-            grid["label"] = label
-            grids.append(grid)
+            # Make Geodataframe
+            if poly:
+                grid = gpd.GeoDataFrame(poly, columns=['geometry'], crs=crs)
+                grid = grid.dissolve().explode(ignore_index=True)
+                grid["label"] = label
+                grid["ds"] = file.stem.split("_")[0]  # ANA, check here if the correct part of the patch name is selected
+                grids.append(grid)
 
     grids = gpd.GeoDataFrame(pd.concat(grids, ignore_index=True), crs=crs)
+
+    grids = grids.dissolve(by='ds').explode(index_parts=False).reset_index(drop=False)
+
     grids.to_file(output_path.as_posix(), driver="GPKG")
 
     return output_path.as_posix()
 
 
 def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
-    """
+    """Calculates visualisations from DEM and saves them into VRT (Geotiff) file.
+
+    Uses RVT.
 
     dem_path:
         Can be any raster file (GeoTIFF and VRT supported.)
@@ -350,7 +362,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
 
     # save_vis = save_dir / "vis"
     # save_vis.mkdir(parents=True, exist_ok=True)
-    save_vis = save_dir  # TODO: fihgure out folder structure for outputs
+    save_vis = save_dir  # TODO: figure out folder structure for outputs
 
     # === STEP 1 ===
     # We need polygon covering valid data
@@ -497,6 +509,10 @@ if __name__ == "__main__":
     #     1024,
     #     save_dir=r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small_debug",
     #     nr_processes=6
+    # )
+
+    # rs = semantic_segmentation_vectors(
+    #     r"C:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small_debug\predictions_segmentation", 0.5
     # )
 
     print(rs)

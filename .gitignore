@@ -149,7 +149,9 @@ dmypy.json
 data/
 /data
 /scripts
+
 inference/data*
+inference/models*
 
 # ignore experiment folder
 experiment/
