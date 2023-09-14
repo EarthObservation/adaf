@@ -256,7 +256,8 @@ def object_detection_vectors(path_to_patches, path_to_predictions):
             data["geometry"] = [box(*a) for a in zip(data.x0, data.y0, data.x1, data.y1)]
             data.drop(columns=["x0", "y0", "x1", "y1"], inplace=True)
 
-            data["ds"] = Path(file).stem.split("_")[0] # ANA, check here if the correct part of the patch name is selected
+            # data["ds"] = Path(file).stem.split("_")[0]
+            data["ds"] = Path(file).stem
 
             appended_data.append(data)
 
@@ -327,7 +328,8 @@ def semantic_segmentation_vectors(path_to_predictions, threshold=0.5):
                 grid = gpd.GeoDataFrame(poly, columns=['geometry'], crs=crs)
                 grid = grid.dissolve().explode(ignore_index=True)
                 grid["label"] = label
-                grid["ds"] = file.stem.split("_")[0]  # ANA, check here if the correct part of the patch name is selected
+                # grid["ds"] = file.stem.split("_")[0]
+                grid["ds"] = file.stem
                 grids.append(grid)
 
     grids = gpd.GeoDataFrame(pd.concat(grids, ignore_index=True), crs=crs)
