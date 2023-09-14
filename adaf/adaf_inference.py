@@ -403,7 +403,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     return out_path
 
 
-def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold):
+def main_routine(dem_path, ml_type, model_path, tile_size_px):
     # Save results to parent folder of input file
     save_dir = Path(dem_path).parent
 
@@ -472,7 +472,7 @@ def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold):
             patches_folder=vis_path.as_posix()
         )
         # ## 4 ## Create map
-        vector_path = semantic_segmentation_vectors(predictions_dir, prob_threshold)
+        vector_path = semantic_segmentation_vectors(predictions_dir)
         print("Created vector file", vector_path)
     else:
         raise Exception("Wrong ml_type: choose 'object detection' or 'segmentation'")
@@ -502,7 +502,7 @@ if __name__ == "__main__":
     # SEGMENTATION:
     my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\models\model_semantic_segmentation_BRE_124.tar"
 
-    rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px, prob_threshold=0.5)
+    rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px)
 
     # rs = object_detection_vectors(
     #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\slrm",

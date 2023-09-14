@@ -55,7 +55,7 @@ inp5 = widgets.FloatSlider(
         disabled=False,
         # style=style
     )
-hb5 = HBox([Label('Threshold (predictions probability)'), inp5])
+# hb5 = HBox([Label('Threshold (predictions probability)'), inp5])
 
 # inp6 = widgets.IntText(
 #     description='Number of CPUs:',
@@ -65,7 +65,7 @@ hb5 = HBox([Label('Threshold (predictions probability)'), inp5])
 # )
 
 main_box = widgets.VBox(
-    [inp1, inp2, inp3, inp4, hb5, button]
+    [inp1, inp2, inp3, inp4, button]
 )
 
 # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
@@ -77,7 +77,6 @@ def on_button_clicked(b):
         inp2.value,
         inp3.value,
         inp4.value,
-        inp5.value
     )
     with output:
         display(fun_output)
