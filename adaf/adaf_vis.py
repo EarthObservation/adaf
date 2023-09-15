@@ -145,6 +145,9 @@ def tiled_processing(
     #     refg_pth = list(output_dir_path.glob("*_refgrid*"))[0]  # Find path to "refgrid" file
     #     ext_list.to_file(refg_pth, driver="GPKG")
 
+    # Prepare list with all output tiles paths
+    all_tiles_paths = [pth[3].as_posix() for pth in input_process_list]
+
     # Build VRTs
     # TODO: hardcoded for slrm, change if different vis will be available
     ds_dir = low_levels_dir / 'slrm'
@@ -155,7 +158,7 @@ def tiled_processing(
     t1 = time.time() - t0
     print(f"Done with computing low-level visualizations in {round(t1/60, ndigits=None)} min.")
 
-    return ds_dir
+    return {"output_directory": ds_dir, "files_list": all_tiles_paths}
 
 
 # function which is multiprocessing
