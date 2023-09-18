@@ -11,15 +11,15 @@ style = {'description_width': 'initial', 'description_color': 'red'}
 # ~~~~~~~~~~~~~~~~~~~~~~~~ INPUT FILES ~~~~~~~~~~~~~~~~~~~~~~~~
 # There are 2 options, switching between the will enable either DEM or Visualizations text_box
 input_radio_options = [
-    'DEM [path to *.tif or path to *.vrt file]',
-    'Visualizations (path to directory)'
+    'DEM (*.tif / *.vrt)',
+    'Visualization (*.tif / *.vrt)'
 ]
 
 # The main radio button options (se the list of available options above)
 switch_dem_input = widgets.RadioButtons(
     options=input_radio_options,
     value=input_radio_options[0],
-    description='Select ML method:',
+    description='Select input type:',
     disabled=False
 )
 
@@ -36,39 +36,59 @@ dem_input = widgets.Text(
 # my_label = widgets.HTML(value=f"<font color='grey'>{text}")
 # display(widgets.HBox([my_label, dem_input]))
 
+chk_batch_process = widgets.Checkbox(
+    value=False,
+    description='Batch processing',
+    disabled=False,
+    indent=False
+)
+
 # This widget sets path to visualizations folder
 visualization_input = widgets.Text(
-    description='Visualizations folder:',
-    placeholder="<my_data_folder>",
+    description='Visualization path:',
+    placeholder="<my_data_folder/my_visualization_file.tif>",
     layout=widgets.Layout(width='98%'),
     style=style,
     disabled=True
 )
 
-# Define context manager for displaying the output (text box for DEM)
+# Define context manager for displaying the text box for input DEM
 output4 = widgets.Output()
 with output4:
-    display(dem_input, visualization_input)
+    display(dem_input)
 
 
-# Radio buttons handler (what happens if radio button is changed)
+# # Radio buttons handler (what happens if radio button is changed)
+# debug_view = widgets.Output(layout={'border': '1px solid black'})
+#
+# @debug_view.capture(clear_output=True)
 def what_traits_radio(value):
-    widgets.Output().clear_output()
+    output4.clear_output()
     if value['new'] != input_radio_options[0]:
         # VIS option is selected
         dem_input.disabled = True
         visualization_input.disabled = False
+        with output4:
+            display(visualization_input)
+        return "VIS"
     else:
         # DEM option is selected
         dem_input.disabled = False
         visualization_input.disabled = True
+        with output4:
+            display(dem_input)
+        return "DEM"
 
-    with widgets.Output():
-        display(dem_input, visualization_input)
+    print(value)
+
+
+def check_batch(value):
+    return value
 
 
 # When radio button trait changes, call the what_traits_radio function
-switch_dem_input.observe(what_traits_radio, names='value')
+switch_dem_input.observe(what_traits_radio)  # , names='value')
+# chk_batch_process.observe(what_traits_radio)
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ ML SETTINGS ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,35 +108,36 @@ inp3 = widgets.Text(
     # value="results/test_save_01"
 )
 
-# inp4 = widgets.Dropdown(
-#     description='Tile size [pixels]:',
-#     options=[256, 512, 1024, 2048],
-#     value=1024,
-#     layout=widgets.Layout(width='20%'),
-#     style=style
-# )
+# Checkboxes for classes
+class_barrow = widgets.Checkbox(
+    value=True,
+    description='Barrow',
+    disabled=False,
+    indent=False
+)
 
-# inp5 = widgets.FloatSlider(
-#         min=0.3,
-#         max=0.9,
-#         step=0.1,
-#         value=0.5,
-#         # description='Threshold (predictions probability)',
-#         orientation='horizontal',
-#         disabled=False,
-#         # style=style
-#     )
-# hb5 = HBox([Label('Threshold (predictions probability)'), inp5])
+class_ringfort = widgets.Checkbox(
+    value=True,
+    description='Ringfort',
+    disabled=False,
+    indent=False
+)
 
-# inp6 = widgets.IntText(
-#     description='Number of CPUs:',
-#     value=6,
-#     layout=widgets.Layout(width='20%'),
-#     style=style
-# )
+class_enclosure = widgets.Checkbox(
+    value=True,
+    description='Enclosure',
+    disabled=False,
+    indent=False
+)
 
+class_all_archaeology = widgets.Checkbox(
+    value=False,
+    description='All archaeology',
+    disabled=False,
+    indent=False
+)
 
-# BUTTON OF DOOM (click to run the app)
+# ~~~~~~~~~~~~~~~~~~~~~~~~ BUTTON OF DOOM (click to run the app) ~~~~~~~~~~~~~~~~~~~~~~~~
 button_run_adaf = widgets.Button(
     description="Run ADAF",
     layout=widgets.Layout(width='98%')
@@ -148,15 +169,20 @@ def on_button_clicked(b):
 button_run_adaf.on_click(on_button_clicked)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ DISPLAYING WIDGETS ~~~~~~~~~~~~~~~~~~~~~~~~
-# Arrange all widgets vertically one-by-one
+# The classes sub-group
+classes_box = widgets.HBox([class_barrow, class_ringfort, class_enclosure, class_all_archaeology])
+
+# Second part of widget (ML settings) arranged vertically
 main_box = widgets.VBox(
-    [inp2, inp3, button_run_adaf]
+    [widgets.Label("- - - - - - - - - - -"), inp2, classes_box, inp3, button_run_adaf]  #
 )
 
-
-display(switch_dem_input, output4)
-
-display(main_box)
+# This controls the overall display elements
+display(
+    widgets.HBox([switch_dem_input, chk_batch_process]),
+    output4,
+    main_box
+)
 
 # # This will
 # display(output)
