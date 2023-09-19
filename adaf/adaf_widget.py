@@ -89,29 +89,52 @@ class_barrow = widgets.Checkbox(
     value=True,
     description='Barrow',
     disabled=False,
-    indent=False
+    indent=False,
+    layout=widgets.Layout(flex='1 1 auto', width='auto')
 )
 
 class_ringfort = widgets.Checkbox(
     value=True,
     description='Ringfort',
     disabled=False,
-    indent=False
+    indent=False,
+    layout=widgets.Layout(flex='1 1 auto', width='auto')
 )
 
 class_enclosure = widgets.Checkbox(
     value=True,
     description='Enclosure',
     disabled=False,
-    indent=False
+    indent=False,
+    layout=widgets.Layout(flex='1 1 auto', width='auto')
 )
 
 class_all_archaeology = widgets.Checkbox(
     value=False,
     description='All archaeology',
     disabled=False,
-    indent=False
+    indent=False,
+    layout=widgets.Layout(flex='1 1 auto', width='auto')
 )
+
+
+def img_widget(path):
+    # Open image for txtbox
+    with open(path, "rb") as src:
+        image = src.read()
+        img_wid = widgets.Image(
+            value=image,
+            format='jpg',
+            width=80,
+            height=80
+        )
+
+    return img_wid
+
+
+img_b = img_widget("media/barrows.jpg")
+img_r = img_widget("media/ringfort.jpg")
+img_e = img_widget("media/enclosure.jpg")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ Custom ML model ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -124,10 +147,11 @@ rb_ml_switch = widgets.RadioButtons(
 )
 
 inp3 = widgets.Text(
-    description='Path to ML model [*.tar]:',
+    description='Path to custom ML model [*.tar]:',
     placeholder="model_folder/saved_model.tar",
     style=style,
-    layout=widgets.Layout(width='98%')
+    layout=widgets.Layout(width='98%'),
+    disabled=True
 )
 
 debug_view = widgets.Output(layout={'border': '1px solid black'})
@@ -158,11 +182,11 @@ rb_ml_switch.observe(ml_method_handler, names="index")
 # ~~~~~~~~~~~~~~~~~~~~~~~~ BUTTON OF DOOM (click to run the app) ~~~~~~~~~~~~~~~~~~~~~~~~
 button_run_adaf = widgets.Button(
     description="Run ADAF",
-    layout=widgets.Layout(width='98%')
+    layout={'width': '98%', 'border': '1px solid black'}  # widgets.Layout(width='98%'), 'border': '1px solid black'
 )
 
 # Define output Context manager
-output = widgets.Output(layout={'border': '1px solid black'})
+output = widgets.Output()  # layout={'border': '1px solid black'})
 
 
 # Handler for BUTTON OF DOOM
@@ -196,7 +220,18 @@ button_run_adaf.on_click(on_button_clicked)
 # ~~~~~~~~~~~~~~~~~~~~~~~~ DISPLAYING WIDGETS ~~~~~~~~~~~~~~~~~~~~~~~~
 # The classes sub-group
 cl = widgets.Label("Select classes for inference:")
-classes_box = widgets.HBox([class_barrow, class_ringfort, class_enclosure, class_all_archaeology])
+
+# classes_box = widgets.HBox([class_barrow, class_ringfort, class_enclosure, class_all_archaeology])
+classes_box = widgets.GridBox(
+    children=[class_barrow, class_ringfort, class_enclosure, class_all_archaeology, img_b, img_r, img_e],
+    layout=widgets.Layout(
+        width='80%',
+        grid_template_columns='20% 20% 20% 20%',
+        grid_template_rows='30px auto',
+        grid_gap='1px'
+    )
+)
+
 ml_methods_row = widgets.HBox([inp2, rb_ml_switch])
 
 # This controls the overall display elements
