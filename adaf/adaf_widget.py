@@ -175,10 +175,10 @@ def on_button_clicked(b):
         vis_exist_ok = True
 
     if inp2.value == "segmentation":
-        model_path = r"../inference/models/model_semantic_segmentation_BRE_124.tar"
+        model_path = r"../inference/data/model_semantic_segmentation_BRE_124.tar"
     else:
         # object detection
-        model_path = r"../inference/models/model_object_detection_BRE_12.tar"
+        model_path = r"../inference/data/model_object_detection_BRE_12.tar"
 
     # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
     fun_output = main_routine(
