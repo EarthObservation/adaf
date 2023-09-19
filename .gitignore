@@ -150,6 +150,10 @@ data/
 /data
 /scripts
 
+inference/data*
+inference/models*
+
 # ignore experiment folder
 experiment/
 experiments/
+adaf/_test_inference.py
