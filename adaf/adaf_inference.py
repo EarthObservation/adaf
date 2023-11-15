@@ -1,19 +1,20 @@
+import glob
 import os
 from pathlib import Path
 from time import localtime, strftime
 
 import geopandas as gpd
-import glob
 import pandas as pd
 import rasterio
 from rasterio.features import shapes
 from shapely.geometry import box, shape
 
 import grid_tools as gt
+from adaf_utils import (make_predictions_on_patches_object_detection,
+                        make_predictions_on_patches_segmentation,
+                        build_vrt_from_list)
 from adaf_vis import tiled_processing
 from aitlas.models import FasterRCNN, HRNet
-from adaf_utils import make_predictions_on_patches_object_detection, make_predictions_on_patches_segmentation
-from vrt import build_vrt_from_list
 
 
 def object_detection_vectors(path_to_patches, path_to_predictions):
@@ -314,7 +315,8 @@ def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
 
 
 if __name__ == "__main__":
-    my_file = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\archaeology1_TIN\135000_296000_archaeology1_TIN.tif"
+    my_file = \
+        r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\archaeology1_TIN\135000_296000_archaeology1_TIN.tif"
 
     my_ml_type = "segmentation"  # "segmentation" or "object detection"
 

@@ -1,10 +1,11 @@
 import os
 from aitlas.transforms import ResizeV2
-from aitlas.utils import image_loader
 from aitlas.transforms import MinMaxNormTranspose
-from aitlas.models import HRNet
 from PIL import Image
 import numpy as np
+from osgeo import gdal
+from pathlib import Path
+
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning) 
@@ -74,3 +75,21 @@ def make_predictions_on_patches_segmentation(model, patches_folder):
     return predictions_dir
 
 
+def build_vrt_from_list(tif_list, vrt_path):
+    vrt_options = gdal.BuildVRTOptions()
+    my_vrt = gdal.BuildVRT(vrt_path.as_posix(), tif_list, options=vrt_options)
+    my_vrt = None
+
+    return vrt_path
+
+
+def build_vrt(ds_dir, vrt_name):
+    ds_dir = Path(ds_dir)
+    vrt_path = ds_dir.parents[0] / vrt_name
+    tif_list = [a.as_posix() for a in Path(ds_dir).glob("*.tif")]
+
+    vrt_options = gdal.BuildVRTOptions()
+    my_vrt = gdal.BuildVRT(vrt_path.as_posix(), tif_list, options=vrt_options)
+    my_vrt = None
+
+    return vrt_path
