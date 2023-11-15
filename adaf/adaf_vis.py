@@ -3,7 +3,7 @@ ADAF - visualisations module
 
 Creates visualisations from DEM and stores them as VRT.
 
-DEMO VERSION: At the moment it only creates NORMALISED SLRM visualizations (min/max -0.5/0.5)
+DEMO VERSION: At the moment it only creates NORMALISED SLRM visualisations (min/max -0.5/0.5)
 
 """
 import multiprocessing as mp
@@ -35,7 +35,7 @@ def tiled_processing(
     # This is the main dataset folder (where DEM file is located)
     output_dir_path = Path(input_vrt_path).parent
 
-    # Get resolution of the dataset, because buffering is dependant on resolution!
+    # Get resolution of the dataset, because buffering is dependent on resolution!
     res = get_resolution(input_vrt_path)
 
     # DEFAULTS (for low-level visualizations)
@@ -459,4 +459,3 @@ def get_resolution(path):
         resolution = src.res[0]
 
     return resolution
-

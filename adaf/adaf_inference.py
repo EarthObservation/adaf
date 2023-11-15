@@ -23,11 +23,12 @@ def object_detection_vectors(path_to_patches, path_to_predictions):
     Parameters
     ----------
     path_to_patches : str or pathlib.Path
-        Path to the directory with patches. Each prediction file (txt) corresponds to a patch file (tif), the function
-        reads the geospatial metadata from the patch, to use them for geo-referencing the bounding box polygons.
-        Adds two probability score and class label attributes to each polygon.
+        System path to the directory with patches. Each prediction file (txt) corresponds to a patch file (tif), the
+        function reads the geospatial metadata from the patch, to use them for geo-referencing the bounding box
+        polygons. Adds two probability score and class label attributes to each polygon.
     path_to_predictions : str or pathlib.Path
-        Path to directory with predictions, txt file, each line contains one predicted feature (multiple lines possible)
+        System path to directory with predictions, txt file, each line contains one predicted feature (multiple lines
+        possible)
 
     Returns
     -------
@@ -91,7 +92,7 @@ def semantic_segmentation_vectors(path_to_predictions, threshold=0.5):
     Parameters
     ----------
     path_to_predictions : str or pathlib.Path
-        Path to the probability masks (tif format)
+        System path to the probability masks (tif format)
     threshold : float
         Probability threshold for predictions.
 
@@ -136,7 +137,7 @@ def semantic_segmentation_vectors(path_to_predictions, threshold=0.5):
                     if value == 1:
                         poly.append(shape(polygon))
 
-            # Make Geodataframe
+            # Make GeoDataFrame
             if poly:
                 grid = gpd.GeoDataFrame(poly, columns=['geometry'], crs=crs)
                 grid = grid.dissolve().explode(ignore_index=True)
@@ -173,7 +174,6 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
 
     # Prepare paths
     in_file = Path(dem_path)
-    ds_dir = in_file.parent
 
     # save_vis = save_dir / "vis"
     # save_vis.mkdir(parents=True, exist_ok=True)

@@ -7,7 +7,7 @@ from adaf_inference import main_routine
 # Display full text in the description of the widget
 style = {'description_width': 'initial'}
 
-# There are 2 options, switching between the will enable either DEM or Visualizations text_box
+# There are 2 options, switching between them will enable either DEM or Visualizations text_box
 rb_input_file_options = [
     'DEM (*.tif / *.vrt)',
     'Visualization (*.tif / *.vrt)'
@@ -50,7 +50,7 @@ chk_batch_process = widgets.Checkbox(
 # # DEBUGGING
 # debug_view = widgets.Output(layout={'border': '1px solid black'})
 # @debug_view.capture(clear_output=True)
-def input_file_handler(value):
+def input_file_handler():
     # # DEBUGGING
     # print("RB:", rb_input_file.index)
     # print("CHK:", chk_batch_process.value)
@@ -79,7 +79,7 @@ chk_batch_process.observe(input_file_handler)
 inp2 = widgets.RadioButtons(
     options=['segmentation', 'object detection'],
     value='segmentation',
-    # layout={'width': 'max-content'}, # If the items' names are long
+    # layout={'width': 'max-content'}, # If the items names are long
     description='Select ML method:',
     disabled=False
 )
@@ -141,7 +141,7 @@ img_e = img_widget("media/enclosure.jpg")
 rb_ml_switch = widgets.RadioButtons(
     options=['ADAF model', 'Custom model'],
     value='ADAF model',
-    # layout={'width': 'max-content'}, # If the items' names are long
+    # layout={'width': 'max-content'}, # If the items names are long
     description='Select ML model:',
     disabled=False
 )
@@ -190,7 +190,7 @@ output = widgets.Output()  # layout={'border': '1px solid black'})
 
 
 # Handler for BUTTON OF DOOM
-def on_button_clicked(b):
+def on_button_clicked():
     if rb_input_file.index == 0:
         # DEM is selected
         vis_exist_ok = False
@@ -199,10 +199,10 @@ def on_button_clicked(b):
         vis_exist_ok = True
 
     if inp2.value == "segmentation":
-        model_path = r"../inference/data/model_semantic_segmentation_BRE_124.tar"
+        model_path = r"../test_data/ml_models/model_semantic_segmentation_BRE_124.tar"
     else:
         # object detection
-        model_path = r"../inference/data/model_object_detection_BRE_12.tar"
+        model_path = r"../test_data/ml_models/model_object_detection_BRE_12.tar"
 
     # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
     fun_output = main_routine(
