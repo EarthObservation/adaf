@@ -50,7 +50,7 @@ chk_batch_process = widgets.Checkbox(
 # # DEBUGGING
 # debug_view = widgets.Output(layout={'border': '1px solid black'})
 # @debug_view.capture(clear_output=True)
-def input_file_handler():
+def input_file_handler(value):
     # # DEBUGGING
     # print("RB:", rb_input_file.index)
     # print("CHK:", chk_batch_process.value)
@@ -190,7 +190,7 @@ output = widgets.Output()  # layout={'border': '1px solid black'})
 
 
 # Handler for BUTTON OF DOOM
-def on_button_clicked():
+def on_button_clicked(b):
     if rb_input_file.index == 0:
         # DEM is selected
         vis_exist_ok = False
