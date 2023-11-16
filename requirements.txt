@@ -1,3 +1,5 @@
+.\_wheels\GDAL-3.4.3-cp38-cp38-win_amd64.whl
+
 # links needed for torch version
 torch>=1.10.0
 torchvision>=0.11.1
@@ -34,3 +36,11 @@ eo-learn-core>=0.10.0
 
 ttach
 imagecodecs
+
+
+rasterio
+geopandas
+jupyterlab
+ipywidgets
+ipykernel
+rvt_py
