@@ -6,13 +6,12 @@ import numpy as np
 from osgeo import gdal
 from pathlib import Path
 
-
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning) 
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
 
-def make_predictions_on_single_patch_store_preds(model, image_path, image_filename, predctions_dir):
+def make_predictions_on_single_patch_store_preds(model, image_path, image_filename, predictions_dir):
     labels = [None, 'enclosure', 'barrow', 'ringfort']
     transform = ResizeV2()
     image = Image.open(image_path)
@@ -30,7 +29,7 @@ def make_predictions_on_single_patch_store_preds(model, image_path, image_filena
         label = predicted['labels'][i].numpy()
         score = predicted['scores'][i].detach().numpy()
         predictions_single_patch_str += f'{round(box[0])} {round(box[1])} {round(box[2])} {round(box[3])} {labels[label]} {score}\n'
-    file = open(predctions_dir+image_filename.split(".")[0]+".txt", "w")
+    file = open(predictions_dir + image_filename.split(".")[0] + ".txt", "w")
     file.write(predictions_single_patch_str)
     file.close()
 

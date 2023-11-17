@@ -191,6 +191,15 @@ output = widgets.Output()  # layout={'border': '1px solid black'})
 
 # Handler for BUTTON OF DOOM
 def on_button_clicked(b):
+    """
+    List of available input parameters:
+    rb_input_file.index - 0 for DEM, 1 for visualization
+    txt_input_file.value
+    inp2.value
+
+    model_path - hard coded based on the inp2.value (segmentation or object detection)
+    """
+
     if rb_input_file.index == 0:
         # DEM is selected
         vis_exist_ok = False
@@ -205,14 +214,14 @@ def on_button_clicked(b):
         model_path = r"../test_data/ml_models/model_object_detection_BRE_12.tar"
 
     # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
-    fun_output = main_routine(
+    final_adaf_output = main_routine(
         dem_path=txt_input_file.value,
         ml_type=inp2.value,
         model_path=model_path,  # inp3.value,
         vis_exist_ok=vis_exist_ok
     )
     with output:
-        display(fun_output)
+        display(final_adaf_output)
 
 
 button_run_adaf.on_click(on_button_clicked)
