@@ -14,7 +14,8 @@ import grid_tools as gt
 from adaf_utils import (make_predictions_on_patches_object_detection,
                         make_predictions_on_patches_segmentation,
                         make_predictions_on_single_patch_store_preds,
-                        build_vrt_from_list)
+                        build_vrt_from_list,
+                        Logger)
 from adaf_vis import tiled_processing
 from aitlas.models import FasterRCNN, HRNet
 
@@ -224,12 +225,18 @@ def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
     dem_path = Path(dem_path)
 
     # Create unique name for results
-    time_stamp = strftime("_%Y%m%d_%H%M%S", localtime())
+    time_started = localtime()
 
     # Save results to parent folder of input file
-    save_dir = Path(dem_path).parent / (dem_path.stem + time_stamp)
+    save_dir = Path(dem_path).parent / (dem_path.stem + strftime("_%Y%m%d_%H%M%S", time_started))
     save_dir.mkdir(parents=True, exist_ok=True)
 
+    # Create logfile
+    log_path = save_dir / "logfile.txt"
+    logger = Logger(log_path, log_time=time_started)
+
+    # VISUALIZATIONS
+    logger.log_section("visualizations")
     # vis_path is folder where visualizations are stored
     if vis_exist_ok:
         # create a virtual folder for visualization

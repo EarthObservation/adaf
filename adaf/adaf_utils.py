@@ -5,6 +5,8 @@ from PIL import Image
 import numpy as np
 from osgeo import gdal
 from pathlib import Path
+from time import localtime, strftime
+
 
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning) 
@@ -92,3 +94,44 @@ def build_vrt(ds_dir, vrt_name):
     my_vrt = None
 
     return vrt_path
+
+
+class Logger:
+    def __init__(self, log_file_path, log_time=None):
+        """Initiates logfile, creates file and writes the header of the log file."""
+
+        self.log_file_path = log_file_path
+
+        if log_time is None:
+            self.log_time = localtime()
+        else:
+            self.log_time = log_time
+
+        time_stamp = strftime("%d/%m/%Y %H:%M:%S", self.log_time)
+
+        log_entry = (
+            f"===============================================================================================\n"
+            f"Automatic Detection of Archaeological Features (ADAF)\n\n"
+            f"Processing log - {time_stamp}\n\n"
+        )
+
+        with open(self.log_file_path, 'w') as log:
+            log.write(log_entry)
+
+    def log(self, message):
+        """Adds a line with datetime and message to logfile."""
+        timestamp = strftime('%Y-%m-%d %H:%M:%S', localtime())
+        log_entry = f'[{timestamp}] {message}\n'
+
+        with open(self.log_file_path, 'a') as log_file:
+            log_file.write(log_entry)
+
+    def log_section(self, section):
+        """Creates a header for a new section in the log file"""
+        log_entry = (
+            f"===============================================================================================\n"
+            f"{section.capitalize()} log:\n"
+        )
+
+        with open(self.log_file_path, 'a') as log_file:
+            log_file.write(log_entry)
