@@ -1,5 +1,6 @@
 import glob
 import os
+import shutil
 from pathlib import Path
 from time import localtime, strftime
 
@@ -12,6 +13,7 @@ from shapely.geometry import box, shape
 import grid_tools as gt
 from adaf_utils import (make_predictions_on_patches_object_detection,
                         make_predictions_on_patches_segmentation,
+                        make_predictions_on_single_patch_store_preds,
                         build_vrt_from_list)
 from adaf_vis import tiled_processing
 from aitlas.models import FasterRCNN, HRNet
@@ -219,15 +221,22 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
 
 
 def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
-    # Save results to parent folder of input file
-    save_dir = Path(dem_path).parent
+    dem_path = Path(dem_path)
 
     # Create unique name for results
-    time_stamp = strftime("%Y%m%d_%H%M%S", localtime())
+    time_stamp = strftime("_%Y%m%d_%H%M%S", localtime())
+
+    # Save results to parent folder of input file
+    save_dir = Path(dem_path).parent / (dem_path.stem + time_stamp)
+    save_dir.mkdir(parents=True, exist_ok=True)
 
     # vis_path is folder where visualizations are stored
     if vis_exist_ok:
-        vis_path = dem_path
+        # create a virtual folder for visualization
+        vis_path = save_dir / "visualization"
+        vis_path.mkdir(parents=True, exist_ok=True)
+        # symlink tif file into this folder
+        shutil.copy(dem_path, Path(vis_path / dem_path.name))
     else:
         # Determine nr_processes from available CPUs (leave two free)
         my_cpus = os.cpu_count() - 2
@@ -296,6 +305,7 @@ def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
             model=model,
             patches_folder=vis_path.as_posix()
         )
+
         # ## 4 ## Create map
         vector_path = semantic_segmentation_vectors(predictions_dir)
         print("Created vector file", vector_path)
@@ -312,38 +322,3 @@ def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
     print("\n--\nFINISHED!")
 
     return vector_path
-
-
-if __name__ == "__main__":
-    my_file = \
-        r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\archaeology1_TIN\135000_296000_archaeology1_TIN.tif"
-
-    my_ml_type = "segmentation"  # "segmentation" or "object detection"
-
-    my_tile_size_px = 1024
-
-    # Specify the path to the model
-    # OBJECT DETECTION:
-    # my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data\model_object_detection_BRE_12.tar"
-    # SEGMENTATION:
-    my_model_path = r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\models\model_semantic_segmentation_BRE_124.tar"
-
-    rs = main_routine(my_file, my_ml_type, my_model_path, my_tile_size_px)
-
-    # rs = object_detection_vectors(
-    #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\slrm",
-    #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-147\predictions_object_detection"
-    # )
-
-    # rs = run_visualisations(
-    #     r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small_debug\ISA-147_small.tif",
-    #     1024,
-    #     save_dir=r"c:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small_debug",
-    #     nr_processes=6
-    # )
-
-    # rs = semantic_segmentation_vectors(
-    #     r"C:\Users\ncoz\GitHub\aitlas-TII-LIDAR\inference\data-small_debug\predictions_segmentation", 0.5
-    # )
-
-    print(rs)
