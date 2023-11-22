@@ -251,7 +251,7 @@ def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
             my_cpus = 1
 
         # ## 1 ## Create visualisation
-        tile_size_px = 1024  # TODO: Currently hardcoded, only tiling mode works with this tile size
+        tile_size_px = 1000  # TODO: Currently hardcoded, only tiling mode works with this tile size
         vis_path = run_visualisations(
             dem_path,
             tile_size_px,
