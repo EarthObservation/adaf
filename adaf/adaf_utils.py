@@ -130,7 +130,59 @@ class Logger:
         """Creates a header for a new section in the log file"""
         log_entry = (
             f"===============================================================================================\n"
-            f"{section.capitalize()} log:\n"
+            f"{section.capitalize()} log:\n\n"
+        )
+
+        with open(self.log_file_path, 'a') as log_file:
+            log_file.write(log_entry)
+
+    def log_vis(self, params):
+        """Creates a header for a new section in the log file"""
+        if params:
+            tiling = ""
+        else:
+            tiling = ""
+
+        if params:
+            save_vis = ""
+        else:
+            save_vis = ""
+
+        log_entry = (
+            f"input image: {params}\n"
+            f"image size: {params}\n"
+            f"CRS: {params}\n"
+            f"size: {params}\n"
+            f"\n"
+            f"{tiling}"  # yes/no
+            f"{save_vis}"  # yes/no
+            f"\n"
+            f"processing time: {params} seconds\n\n"
+        )
+
+        with open(self.log_file_path, 'a') as log_file:
+            log_file.write(log_entry)
+
+    def log_inference(self, params):
+        """Creates a header for a new section in the log file"""
+        if params:
+            custom_model = ""
+        else:
+            custom_model = f"path to custom model: {params}"
+
+        if params:
+            save_vis = ""
+        else:
+            save_vis = ""
+
+        log_entry = (
+            f"selected ML method: {params}\n"
+            f"selected model: {params}\n"
+            f"{custom_model}\n"
+            f"\n"
+            f"location of results: {params}"  # yes/no
+            f"\n"
+            f"processing time: {params} seconds\n\n"
         )
 
         with open(self.log_file_path, 'a') as log_file:
