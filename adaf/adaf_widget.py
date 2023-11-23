@@ -147,7 +147,7 @@ rb_ml_switch = widgets.RadioButtons(
     disabled=False
 )
 
-inp3 = widgets.Text(
+txt_custom_model = widgets.Text(
     description='Path to custom ML model [*.tar]:',
     placeholder="model_folder/saved_model.tar",
     style=style,
@@ -168,13 +168,13 @@ def ml_method_handler(value):
         class_ringfort.disabled = False
         class_enclosure.disabled = False
         class_all_archaeology.disabled = False
-        inp3.disabled = True
+        txt_custom_model.disabled = True
     elif value.new == 1:
         class_barrow.disabled = True
         class_ringfort.disabled = True
         class_enclosure.disabled = True
         class_all_archaeology.disabled = True
-        inp3.disabled = False
+        txt_custom_model.disabled = False
 
 
 # When radio button trait changes, call the what_traits_radio function
@@ -208,18 +208,24 @@ def on_button_clicked(b):
         # Visualization is selected
         vis_exist_ok = True
 
-    if inp2.value == "segmentation":
-        model_path = r"../test_data/ml_models/model_semantic_segmentation_BRE_124.tar"
-    else:
-        # object detection
-        model_path = r"../test_data/ml_models/model_object_detection_BRE_12.tar"
+    # Select classes
+    class_selection = [
+        class_barrow,
+        class_ringfort,
+        class_all_archaeology,
+        class_ringfort
+    ]
+    class_selection = [a.description for a in class_selection if a.value]
 
     my_input = ADAFInput()
     my_input.update(
         dem_path=txt_input_file.value,
+        batch_processing=chk_batch_process.value,
         vis_exist_ok=vis_exist_ok,
         ml_type=inp2.value,
-        model_path=model_path
+        classes_selection=class_selection,
+        ml_model_rbt=rb_ml_switch.value,
+        ml_model_pth=txt_custom_model.value
     )
 
     # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
@@ -253,6 +259,6 @@ display(
     widgets.HBox([rb_input_file, chk_batch_process]),
     txt_input_file,
     widgets.HTML(value=f"<b>ML options:</b>"),
-    widgets.VBox([ml_methods_row, cl, classes_box, inp3, button_run_adaf]),
+    widgets.VBox([ml_methods_row, cl, classes_box, txt_custom_model, button_run_adaf]),
     output
 )

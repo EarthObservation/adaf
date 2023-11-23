@@ -253,7 +253,10 @@ class ADAFInput:
         self.dem_path = None
         self.vis_exist_ok = None
         self.ml_type = None
-        self.model_path = None
+        self.batch_processing = None
+        self.classes_selection = None
+        self.ml_model_rbt = None
+        self.ml_model_pth = None
 
     # def __getattr__(self, attr):
     #     category, key, value = attr.split('.')

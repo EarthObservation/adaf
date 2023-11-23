@@ -296,7 +296,8 @@ def main_routine(inp):
         }
         model = FasterRCNN(model_config)
         model.prepare()
-        model.load_model(inp.model_path)
+        model_path = r"../test_data/ml_models/model_object_detection_BRE_12.tar"
+        model.load_model(model_path)
         print("Model successfully loaded.")
         predictions_dir = make_predictions_on_patches_object_detection(
             model=model,
@@ -320,7 +321,8 @@ def main_routine(inp):
         }
         model = HRNet(model_config)
         model.prepare()
-        model.load_model(inp.model_path)
+        model_path = r"../test_data/ml_models/model_semantic_segmentation_BRE_124.tar"
+        model.load_model(model_path)
         print("Model successfully loaded.")
         predictions_dir = make_predictions_on_patches_segmentation(
             model=model,
