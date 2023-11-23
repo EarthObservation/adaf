@@ -1,6 +1,7 @@
 import glob
 import os
 import shutil
+import time
 from pathlib import Path
 from time import localtime, strftime
 
@@ -173,8 +174,6 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
         Number of processes for parallel computing
 
     """
-    # TODO: Probably good to create dict (JSOn) with all the paths that are created here?
-
     # Prepare paths
     in_file = Path(dem_path)
 
@@ -207,7 +206,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     # === STEP 3 ===
     # Run visualizations
     print("Start RVT vis")
-    out_path = tiled_processing(
+    out_paths = tiled_processing(
         input_vrt_path=in_file.as_posix(),
         ext_list=tiles_extents,
         nr_processes=nr_processes,
@@ -218,11 +217,11 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     Path(valid_data_outline).unlink()
     Path(refgrid_name).unlink()
 
-    return out_path["output_directory"]
+    return out_paths
 
 
-def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
-    dem_path = Path(dem_path)
+def main_routine(inp):
+    dem_path = Path(inp.dem_path)
 
     # Create unique name for results
     time_started = localtime()
@@ -236,28 +235,40 @@ def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
     logger = Logger(log_path, log_time=time_started)
 
     # VISUALIZATIONS
-    logger.log_section("visualizations")
+    logger.log_vis_inputs(dem_path, inp.vis_exist_ok)
     # vis_path is folder where visualizations are stored
-    if vis_exist_ok:
+    if inp.vis_exist_ok:
         # create a virtual folder for visualization
         vis_path = save_dir / "visualization"
         vis_path.mkdir(parents=True, exist_ok=True)
-        # symlink tif file into this folder
+        # Copy tif file into this folder
         shutil.copy(dem_path, Path(vis_path / dem_path.name))
+
+        # TODO: Cut image into tiles if too large
     else:
+        t1 = time.time()
+
         # Determine nr_processes from available CPUs (leave two free)
         my_cpus = os.cpu_count() - 2
         if my_cpus < 1:
             my_cpus = 1
 
         # ## 1 ## Create visualisation
-        tile_size_px = 1000  # TODO: Currently hardcoded, only tiling mode works with this tile size
-        vis_path = run_visualisations(
+        # TODO: Currently hardcoded, only tiling mode works with this tile size
+        tile_size_px = 512  # Tile size has to be in base 2 (512, 1024) for inference to work!
+        out_paths = run_visualisations(
             dem_path,
             tile_size_px,
             save_dir=save_dir.as_posix(),
             nr_processes=my_cpus
         )
+
+        vis_path = out_paths["output_directory"]
+        vrt_path = out_paths["vrt_path"]
+        t1 = time.time() - t1
+
+        logger.log_vis_results(vis_path, vrt_path, t1)
+
     # Make sure it is a Path object!
     vis_path = Path(vis_path)
 
@@ -270,7 +281,10 @@ def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
     # )
     # shutil.rmtree(vis_path)
 
-    if ml_type == "object detection":
+    # INFERENCE
+    logger.log_inference_inputs(inp.ml_type)
+
+    if inp.ml_type == "object detection":
         print("Running object detection")
         # ## 3 ## Run the model
         model_config = {
@@ -282,7 +296,7 @@ def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
         }
         model = FasterRCNN(model_config)
         model.prepare()
-        model.load_model(model_path)
+        model.load_model(inp.model_path)
         print("Model successfully loaded.")
         predictions_dir = make_predictions_on_patches_object_detection(
             model=model,
@@ -293,7 +307,7 @@ def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
         vector_path = object_detection_vectors(vis_path, predictions_dir)
         print("Created vector file", vector_path)
 
-    elif ml_type == "segmentation":
+    elif inp.ml_type == "segmentation":
         print("Running segmentation")
         # ## 3 ## Run the model
         model_config = {
@@ -306,7 +320,7 @@ def main_routine(dem_path, ml_type, model_path, vis_exist_ok):
         }
         model = HRNet(model_config)
         model.prepare()
-        model.load_model(model_path)
+        model.load_model(inp.model_path)
         print("Model successfully loaded.")
         predictions_dir = make_predictions_on_patches_segmentation(
             model=model,

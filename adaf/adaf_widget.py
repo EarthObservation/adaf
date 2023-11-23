@@ -1,6 +1,7 @@
 import ipywidgets as widgets
 from IPython.display import display
 from adaf_inference import main_routine
+from adaf_utils import ADAFInput
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ INPUT FILES ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -213,13 +214,16 @@ def on_button_clicked(b):
         # object detection
         model_path = r"../test_data/ml_models/model_object_detection_BRE_12.tar"
 
-    # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
-    final_adaf_output = main_routine(
+    my_input = ADAFInput()
+    my_input.update(
         dem_path=txt_input_file.value,
+        vis_exist_ok=vis_exist_ok,
         ml_type=inp2.value,
-        model_path=model_path,  # inp3.value,
-        vis_exist_ok=vis_exist_ok
+        model_path=model_path
     )
+
+    # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
+    final_adaf_output = main_routine(my_input)
     with output:
         display(final_adaf_output)
 

@@ -1,4 +1,7 @@
 import os
+
+import rasterio
+
 from aitlas.transforms import ResizeV2
 from aitlas.transforms import MinMaxNormTranspose
 from PIL import Image
@@ -110,7 +113,7 @@ class Logger:
         time_stamp = strftime("%d/%m/%Y %H:%M:%S", self.log_time)
 
         log_entry = (
-            f"===============================================================================================\n"
+            f"=================================================================================\n"
             f"Automatic Detection of Archaeological Features (ADAF)\n\n"
             f"Processing log - {time_stamp}\n\n"
         )
@@ -129,61 +132,146 @@ class Logger:
     def log_section(self, section):
         """Creates a header for a new section in the log file"""
         log_entry = (
-            f"===============================================================================================\n"
+            f"=================================================================================\n"
             f"{section.capitalize()} log:\n\n"
         )
 
         with open(self.log_file_path, 'a') as log_file:
             log_file.write(log_entry)
 
-    def log_vis(self, params):
+    def log_vis_inputs(self, image_path, vis_exist):
         """Creates a header for a new section in the log file"""
-        if params:
-            tiling = ""
-        else:
-            tiling = ""
+        # Load image metadata
+        image_log = self.log_input_image(image_path)
 
-        if params:
-            save_vis = ""
+        if vis_exist:
+            comment = "Visualization already exist"
         else:
-            save_vis = ""
+            comment = "Processing visualization from DEM file"
 
         log_entry = (
-            f"input image: {params}\n"
-            f"image size: {params}\n"
-            f"CRS: {params}\n"
-            f"size: {params}\n"
+            f"=================================================================================\n"
+            f"Visualizations log:\n"
             f"\n"
-            f"{tiling}"  # yes/no
-            f"{save_vis}"  # yes/no
+            f"- {comment}:\n"
             f"\n"
-            f"processing time: {params} seconds\n\n"
+            + image_log
         )
 
         with open(self.log_file_path, 'a') as log_file:
             log_file.write(log_entry)
 
-    def log_inference(self, params):
-        """Creates a header for a new section in the log file"""
-        if params:
-            custom_model = ""
-        else:
-            custom_model = f"path to custom model: {params}"
+    def log_vis_results(self, vis_dir, vrt_path, processing_time):
+        vis_dir = Path(vis_dir)
+        vrt_path = Path(vrt_path)
 
-        if params:
-            save_vis = ""
+        # Count number of created tiles
+        tiles_count = len(list(vis_dir.glob('*.tif')))
+
+        # PROCESSING TIME IS IN SECONDS
+        if processing_time >= 60:
+            processing_time = processing_time / 60
+            time_unit = "min"
         else:
-            save_vis = ""
+            time_unit = "sec"
 
         log_entry = (
-            f"selected ML method: {params}\n"
-            f"selected model: {params}\n"
-            f"{custom_model}\n"
+            f"    tiling:             YES\n"
+            f"    save visualization: YES\n"
+            f"    tiles location:     {vis_dir}\n"
+            f"    tiles count:        {tiles_count}\n"
+            f"    VRT file path:      {vrt_path}\n"
             f"\n"
-            f"location of results: {params}"  # yes/no
+            f"TIME: {processing_time:.1f} {time_unit}\n"
             f"\n"
-            f"processing time: {params} seconds\n\n"
         )
 
         with open(self.log_file_path, 'a') as log_file:
             log_file.write(log_entry)
+
+    @staticmethod
+    def log_input_image(image_path):
+        """Creates a header for a new section in the log file"""
+
+        # Get input image
+        with rasterio.open(image_path) as src:
+            crs = src.crs.to_epsg()
+            width = src.width
+            height = src.height
+            if src.compression:
+                compress = src.compression.value
+            else:
+                compress = "None"
+
+        file_size_bytes = os.path.getsize(image_path)
+        if file_size_bytes >= (1024.0 ** 3):
+            # Convert to GB
+            file_size = file_size_bytes / (1024.0 ** 3)
+            fs_unit = "GB"
+        elif file_size_bytes >= (1024.0 ** 2):
+            # Convert to GB
+            file_size = file_size_bytes / (1024.0 ** 2)
+            fs_unit = "MB"
+        else:
+            file_size = file_size_bytes / 1024
+            fs_unit = "kB"
+
+        log_entry = (
+            f"{image_path}\n\n"
+            f"    image size:  {width}x{height} pixels\n"
+            f"    CRS:         EPSG:{crs}\n"
+            f"    size:        {file_size:.2f} {fs_unit}\n"
+            f"    compression: {compress}\n"
+            f"\n"
+        )
+
+        return log_entry
+
+    def log_inference_inputs(self, ml_method):
+        """Creates a header for a new section in the log file"""
+
+        if ml_method == "segmentation":
+            ml_method = "Semantic segmentation"
+
+        if ml_method == "object detection":
+            ml_method = ml_method.capitalize()
+
+        log_entry = (
+            f"=================================================================================\n"
+            f"Inference log:\n"
+            "\n"
+            f"ML method: {ml_method}\n"
+            f"\n"
+        )
+
+        with open(self.log_file_path, 'a') as log_file:
+            log_file.write(log_entry)
+
+
+class ADAFInput:
+    def __init__(self):
+        self.dem_path = None
+        self.vis_exist_ok = None
+        self.ml_type = None
+        self.model_path = None
+
+    # def __getattr__(self, attr):
+    #     category, key, value = attr.split('.')
+    #     if category in ("vis", "inference") and key in self.__dict__[category]:
+    #         return self.__dict__[category][key]
+    #     else:
+    #         raise AttributeError(f"'MyInput' object has no attribute '{attr}'")
+
+    def update(self, **kwargs):
+        for key, value in kwargs.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+                # print(f"{key} updated to {value}")
+            else:
+                print(f"Invalid parameter: {key}")
+
+    # TODO: Do I need to run some checks?
+    def check_data(self):
+        """ Check Attributes """
+        if self.dem_path == "percent":
+            self.dem_path = "perc"
