@@ -149,12 +149,12 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5):
                 grid = grid.dissolve().explode(ignore_index=True)
                 grid["label"] = label
                 # grid["ds"] = file.stem.split("_")[0]
-                grid["ds"] = file.stem
+                grid["prob_mask_path"] = "\\".join(file.parts[-3:])  # TODO: path instead of filename
                 grids.append(grid)
 
     grids = gpd.GeoDataFrame(pd.concat(grids, ignore_index=True), crs=crs)
 
-    grids = grids.dissolve(by='ds').explode(index_parts=False).reset_index(drop=False)
+    grids = grids.dissolve(by='prob_mask_path').explode(index_parts=False).reset_index(drop=False)
 
     grids.to_file(output_path.as_posix(), driver="GPKG")
 
