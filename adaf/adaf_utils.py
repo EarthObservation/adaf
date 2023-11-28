@@ -3,7 +3,7 @@ import os
 import rasterio
 
 from aitlas.transforms import ResizeV2
-from aitlas.transforms import MinMaxNormTranspose
+from aitlas.transforms import Transpose
 from PIL import Image
 import numpy as np
 from osgeo import gdal
@@ -33,7 +33,11 @@ def make_predictions_on_single_patch_store_preds(model, image_path, image_filena
         box = predicted['boxes'][i].detach().numpy()
         label = predicted['labels'][i].numpy()
         score = predicted['scores'][i].detach().numpy()
-        predictions_single_patch_str += f'{round(box[0])} {round(box[1])} {round(box[2])} {round(box[3])} {labels[label]} {score}\n'
+        predictions_single_patch_str += (
+            f'{round(box[0])} {round(box[1])} '
+            f'{round(box[2])} {round(box[3])} '
+            f'{labels[label]} {score}\n'
+        )
     file = open(predictions_dir + image_filename.split(".")[0] + ".txt", "w")
     file.write(predictions_single_patch_str)
     file.close()
@@ -57,26 +61,44 @@ def make_predictions_on_patches_object_detection(model, patches_folder):
     return predictions_dir
 
 
-def make_predictions_on_patches_segmentation(model, patches_folder):
-    predictions_dir = patches_folder.split("/")[:-1]
-    predictions_dir.append("predictions_segmentation/")
-    predictions_dir = '/'.join(predictions_dir)
+def make_predictions_on_patches_segmentation(model, label, patches_folder, predictions_dir=None):
+    """Generates predictions on patches (the model performs binary semantic segmentation)
+
+
+    Parameters
+    ----------
+    model
+    label
+    patches_folder
+    predictions_dir : str or object
+        Optional - user can specify a custom folder. Otherwise, a folder called "predictions_segmentation_{label}" is
+        created.
+
+    Returns
+    -------
+
+    """
+    patches_folder = Path(patches_folder)
+    # If predictions_dir is not given, results are saved into a default folder
+    if predictions_dir is None:
+        predictions_dir = patches_folder.parent / f"predictions_segmentation_{label}"
+    else:
+        predictions_dir = Path(predictions_dir)
+    predictions_dir.mkdir(parents=True, exist_ok=True)
 
     print("Generating predictions:")
-    if not os.path.isdir(predictions_dir):
-        os.makedirs(predictions_dir)
     for file in os.listdir(patches_folder):
         print(">>> ", file)
         if file.endswith(".tif"):
             image_path = os.path.join(patches_folder, file)
-            model.predict_masks_tiff_probs(
+            model.predict_masks_tiff_probs_binary(
                 image_path=image_path,
-                labels=['barrow', 'enclosure', 'ringfort'],
-                data_transforms=MinMaxNormTranspose(),
-                predictions_dir=predictions_dir
+                label=label,
+                data_transforms=Transpose(),
+                predictions_dir=str(predictions_dir)
             )
 
-    return predictions_dir
+    return str(predictions_dir)
 
 
 def build_vrt_from_list(tif_list, vrt_path):
@@ -254,7 +276,7 @@ class ADAFInput:
         self.vis_exist_ok = None
         self.ml_type = None
         self.batch_processing = None
-        self.classes_selection = None
+        self.labels = None
         self.ml_model_rbt = None
         self.ml_model_pth = None
 

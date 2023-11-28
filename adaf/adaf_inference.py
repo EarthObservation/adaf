@@ -4,6 +4,7 @@ import shutil
 import time
 from pathlib import Path
 from time import localtime, strftime
+from torch import cuda
 
 import geopandas as gpd
 import pandas as pd
@@ -90,13 +91,14 @@ def object_detection_vectors(path_to_patches, path_to_predictions):
     return output_path.as_posix()
 
 
-def semantic_segmentation_vectors(path_to_predictions, threshold=0.5):
-    """Converts semantic segmentation probability masks to polygons using a threshold.
+def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5):
+    """Converts semantic segmentation probability masks to polygons using a threshold. If more than one class, all
+    predictions are stored in the same vector file, class is stored as label attribute.
 
     Parameters
     ----------
-    path_to_predictions : str or pathlib.Path
-        System path to the probability masks (tif format)
+    predictions_dirs_dict : dict
+        Key is ML label, value is path to directory with results for that label.
     threshold : float
         Probability threshold for predictions.
 
@@ -105,16 +107,16 @@ def semantic_segmentation_vectors(path_to_predictions, threshold=0.5):
     output_path : str
         Path to vector file.
     """
-    labels = ["barrow", "ringfort", "enclosure"]  # TODO: Read this from model configuration
 
-    # Prepare paths, use Path from pathlib
-    path_to_predictions = Path(path_to_predictions)
+    # Prepare paths, use Path from pathlib (select one from dict, we only need parent)
+    path_to_predictions = Path(list(predictions_dirs_dict.values())[0])
     # Output path (GPKG file in the data folder)
     output_path = path_to_predictions.parent / "semantic_segmentation.gpkg"
 
     grids = []
-    for label in labels:
-        tif_list = list(path_to_predictions.glob(f"*{label}*.tif"))
+    for label, predicts_dir in predictions_dirs_dict.items():
+        predicts_dir = Path(predicts_dir)
+        tif_list = list(predicts_dir.glob(f"*.tif"))
 
         # file = tif_list[4]
 
@@ -220,6 +222,65 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     return out_paths
 
 
+def run_aitlas_segmentation(labels, images_dir):
+    """
+
+    Parameters
+    ----------
+    labels
+    images_dir
+
+    Returns
+    -------
+    predictions_dirs: dict
+        List of
+
+    """
+    images_dir = str(images_dir)
+
+    models = {
+        "barrow": r".\ml_models\barrow_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
+        "enclosure": r".\ml_models\enclosure_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
+        "ringfort": r".\ml_models\ringfort_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
+        "AO": r".\ml_models\AO_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar"
+    }
+
+    if cuda.is_available():
+        print("> CUDA is available, running predictions on GPU!")
+    else:
+        print("> No CUDA detected, running predictions on CPU!")
+
+    predictions_dirs = {}
+    for label in labels:
+        # Prepare the model
+        model_config = {
+            "num_classes": 2,  # Number of classes in the dataset
+            "learning_rate": 0.0001,  # Learning rate for training
+            "pretrained": True,  # Whether to use a pretrained model or not
+            "use_cuda": cuda.is_available(),  # Set to True if you want to use GPU acceleration
+            "threshold": 0.5,
+            "metrics": ["iou"]  # Evaluation metrics to be used
+        }
+        model = HRNet(model_config)
+        model.prepare()
+
+        # Load appropriate ADAF model
+        model_path = models.get(label)
+        model.load_model(model_path)
+        print("Model successfully loaded.")
+
+        # Run inference
+        preds_dir = make_predictions_on_patches_segmentation(
+            model=model,
+            label=label,
+            patches_folder=images_dir
+        )
+
+        predictions_dirs[label] = preds_dir
+
+    return predictions_dirs
+
+
 def main_routine(inp):
     dem_path = Path(inp.dem_path)
 
@@ -255,7 +316,7 @@ def main_routine(inp):
 
         # ## 1 ## Create visualisation
         # TODO: Currently hardcoded, only tiling mode works with this tile size
-        tile_size_px = 512  # Tile size has to be in base 2 (512, 1024) for inference to work!
+        tile_size_px = 1024  # Tile size has to be in base 2 (512, 1024) for inference to work!
         out_paths = run_visualisations(
             dem_path,
             tile_size_px,
@@ -285,13 +346,14 @@ def main_routine(inp):
     logger.log_inference_inputs(inp.ml_type)
 
     if inp.ml_type == "object detection":
+
         print("Running object detection")
         # ## 3 ## Run the model
         model_config = {
             "num_classes": 4,  # Number of classes in the dataset
             "learning_rate": 0.001,  # Learning rate for training
             "pretrained": True,  # Whether to use a pretrained model or not
-            "use_cuda": False,  # Set to True if you want to use GPU acceleration
+            "use_cuda": cuda.is_available(),  # Set to True if you want to use GPU acceleration
             "metrics": ["map"]  # Evaluation metrics to be used
         }
         model = FasterRCNN(model_config)
@@ -299,47 +361,33 @@ def main_routine(inp):
         model_path = r"../test_data/ml_models/model_object_detection_BRE_12.tar"
         model.load_model(model_path)
         print("Model successfully loaded.")
-        predictions_dir = make_predictions_on_patches_object_detection(
+        predictions_dict = make_predictions_on_patches_object_detection(
             model=model,
-            patches_folder=vis_path.as_posix()
+            patches_folder=str(vis_path)
         )
 
         # ## 4 ## Create map
-        vector_path = object_detection_vectors(vis_path, predictions_dir)
+        vector_path = object_detection_vectors(vis_path, predictions_dict)
         print("Created vector file", vector_path)
 
     elif inp.ml_type == "segmentation":
         print("Running segmentation")
         # ## 3 ## Run the model
-        model_config = {
-            "num_classes": 3,  # Number of classes in the dataset
-            "learning_rate": 0.0001,  # Learning rate for training
-            "pretrained": True,  # Whether to use a pretrained model or not
-            "use_cuda": False,  # Set to True if you want to use GPU acceleration
-            "threshold": 0.5,
-            "metrics": ["map"]  # Evaluation metrics to be used
-        }
-        model = HRNet(model_config)
-        model.prepare()
-        model_path = r"../test_data/ml_models/model_semantic_segmentation_BRE_124.tar"
-        model.load_model(model_path)
-        print("Model successfully loaded.")
-        predictions_dir = make_predictions_on_patches_segmentation(
-            model=model,
-            patches_folder=vis_path.as_posix()
-        )
+        predictions_dict = run_aitlas_segmentation(inp.labels, vis_path)
 
         # ## 4 ## Create map
-        vector_path = semantic_segmentation_vectors(predictions_dir)
+        vector_path = semantic_segmentation_vectors(predictions_dict)
         print("Created vector file", vector_path)
+
     else:
         raise Exception("Wrong ml_type: choose 'object detection' or 'segmentation'")
 
     # ## 5 ## Create VRT file for predictions
-    for label in ["barrow", "ringfort", "enclosure"]:
+    # TODO IF keep TIF, else shutil.rmtree(path)
+    for label, p_dir in predictions_dict.items():
         print("Creating vrt for", label)
-        tif_list = glob.glob((Path(predictions_dir) / f"*{label}*.tif").as_posix())
-        vrt_name = save_dir / (Path(predictions_dir).stem + f"_{label}.vrt")
+        tif_list = glob.glob((Path(p_dir) / f"*{label}*.tif").as_posix())
+        vrt_name = save_dir / (Path(p_dir).stem + f"_{label}.vrt")
         build_vrt_from_list(tif_list, vrt_name)
 
     print("\n--\nFINISHED!")
