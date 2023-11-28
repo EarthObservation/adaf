@@ -89,7 +89,7 @@ rb_input_file.observe(input_file_handler)
 chk_batch_process.observe(input_file_handler)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ ML SETTINGS ~~~~~~~~~~~~~~~~~~~~~~~~
-inp2 = widgets.RadioButtons(
+rb_semseg_or_objdet = widgets.RadioButtons(
     options=['segmentation', 'object detection'],
     value='segmentation',
     # layout={'width': 'max-content'}, # If the items names are long
@@ -192,6 +192,27 @@ def ml_method_handler(value):
 # When radio button trait changes, call the what_traits_radio function
 rb_ml_switch.observe(ml_method_handler, names="index")
 
+# ~~~~~~~~~~~~~~~~~~~~ Checkbox to save ML predictions  ~~~~~~~~~~~~~~~~~~~~
+
+# Checkbox to save ML predictions files
+chk_save_predictions_descriptions = [
+    "Keep probability masks (raw ML results)",
+    "Keep bounding box txt files (raw ML results)"
+]
+chk_save_predictions = widgets.Checkbox(
+    value=False,
+    description=chk_save_predictions_descriptions[0],
+    disabled=False,
+    indent=False
+)
+
+
+def chk_save_predictions_handler(value):
+    chk_save_predictions.description = chk_save_predictions_descriptions[rb_semseg_or_objdet.index]
+
+
+rb_semseg_or_objdet.observe(chk_save_predictions_handler)
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~ BUTTON OF DOOM (click to run the app) ~~~~~~~~~~~~~~~~~~~~~~~~
 button_run_adaf = widgets.Button(
     description="Run ADAF",
@@ -234,7 +255,7 @@ def on_button_clicked(b):
         dem_path=txt_input_file.value,
         batch_processing=chk_batch_process.value,
         vis_exist_ok=vis_exist_ok,
-        ml_type=inp2.value,
+        ml_type=rb_semseg_or_objdet.value,
         classes_selection=class_selection,
         ml_model_rbt=rb_ml_switch.value,
         ml_model_pth=txt_custom_model.value
@@ -263,7 +284,7 @@ classes_box = widgets.GridBox(
     )
 )
 
-ml_methods_row = widgets.HBox([inp2, rb_ml_switch])
+ml_methods_row = widgets.HBox([rb_semseg_or_objdet, rb_ml_switch])
 
 # This controls the overall display elements
 display(
@@ -272,6 +293,6 @@ display(
     txt_input_file,
     chk_save_vis,
     widgets.HTML(value=f"<b>ML options:</b>"),
-    widgets.VBox([ml_methods_row, cl, classes_box, txt_custom_model, button_run_adaf]),
+    widgets.VBox([ml_methods_row, cl, classes_box, txt_custom_model, chk_save_predictions, button_run_adaf]),
     output
 )
