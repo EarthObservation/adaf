@@ -4,36 +4,33 @@ import shutil
 import time
 from pathlib import Path
 from time import localtime, strftime
-from torch import cuda
 
 import geopandas as gpd
 import pandas as pd
 import rasterio
+from aitlas.models import FasterRCNN, HRNet
+from pyproj import CRS
 from rasterio.features import shapes
 from shapely.geometry import box, shape
+from torch import cuda
 
 import grid_tools as gt
 from adaf_utils import (make_predictions_on_patches_object_detection,
                         make_predictions_on_patches_segmentation,
-                        make_predictions_on_single_patch_store_preds,
                         build_vrt_from_list,
                         Logger)
 from adaf_vis import tiled_processing
-from aitlas.models import FasterRCNN, HRNet
 
 
-def object_detection_vectors(path_to_patches, path_to_predictions):
+def object_detection_vectors(predictions_dirs_dict, threshold=0.5):
     """Converts object detection bounding boxes from text to vector format.
 
     Parameters
     ----------
-    path_to_patches : str or pathlib.Path
-        System path to the directory with patches. Each prediction file (txt) corresponds to a patch file (tif), the
-        function reads the geospatial metadata from the patch, to use them for geo-referencing the bounding box
-        polygons. Adds two probability score and class label attributes to each polygon.
-    path_to_predictions : str or pathlib.Path
-        System path to directory with predictions, txt file, each line contains one predicted feature (multiple lines
-        possible)
+    predictions_dirs_dict : dict
+        Key is ML label, value is path to directory with results for that label.
+    threshold : float
+        Probability threshold for predictions.
 
     Returns
     -------
@@ -41,54 +38,56 @@ def object_detection_vectors(path_to_patches, path_to_predictions):
         Path to vector file.
     """
     # Use Path from pathlib
-    path_to_patches = Path(path_to_patches)
-    path_to_predictions = Path(path_to_predictions)
+    path_to_predictions = Path(list(predictions_dirs_dict.values())[0])
     # Prepare output path (GPKG file in the data folder)
-    output_path = path_to_patches.parent / "object_detection.gpkg"
+    output_path = path_to_predictions.parent / "object_detection.gpkg"
 
     appended_data = []
-    for file in os.listdir(path_to_predictions):
-        # Set path to individual PREDICTIONS FILE
-        file_path = path_to_predictions / file
+    crs = None
+    for label, predicts_dir in predictions_dirs_dict.items():
+        predicts_dir = Path(predicts_dir)
+        file_list = list(predicts_dir.glob(f"*.txt"))
 
-        # Only read files that are not empty
-        if not os.stat(file_path).st_size == 0:
-            # Find PATCH that belongs to the PREDICTIONS file
-            patch_path = path_to_patches / (file[:-3] + "tif")
+        for file in file_list:
+            # Set path to individual PREDICTIONS FILE
+            file_path = path_to_predictions / file
 
-            # Arrays are indexed from the top-left corner, so we need minx and maxy
-            with rasterio.open(patch_path) as src:
-                crs = src.crs
-                res = src.res[0]
-                x_min = src.transform.c
-                y_max = src.transform.f
+            # Only read files that are not empty
+            if not os.stat(file_path).st_size == 0:
+                # Read predictions from TXT file
+                data = pd.read_csv(file_path, sep=" ", header=None)
+                data.columns = ["x0", "y0", "x1", "y1", "label", "score", "epsg", "res", "x_min", "y_max"]
 
-            # Read predictions from TXT file
-            data = pd.read_csv(file_path, sep=" ", header=None)
-            data.columns = ["x0", "y0", "x1", "y1", "label", "score"]
+                # EPSG code is added to every bbox, doesn't matter which we chose, it has to be the same for all entries
+                if crs is None:
+                    crs = CRS.from_epsg(int(data.epsg[0]))
 
-            data.x0 = x_min + (res * data.x0)
-            data.x1 = x_min + (res * data.x1)
-            data.y0 = y_max - (res * data.y0)
-            data.y1 = y_max - (res * data.y1)
+                data.x0 = data.x_min + (data.res * data.x0)
+                data.x1 = data.x_min + (data.res * data.x1)
+                data.y0 = data.y_max - (data.res * data.y0)
+                data.y1 = data.y_max - (data.res * data.y1)
 
-            data["geometry"] = [box(*a) for a in zip(data.x0, data.y0, data.x1, data.y1)]
-            data.drop(columns=["x0", "y0", "x1", "y1"], inplace=True)
+                data["geometry"] = [box(*a) for a in zip(data.x0, data.y0, data.x1, data.y1)]
+                data.drop(columns=["x0", "y0", "x1", "y1", "epsg", "res", "x_min", "y_max"], inplace=True)
 
-            # data["ds"] = Path(file).stem.split("_")[0]
-            data["ds"] = Path(file).stem
+                # Filter by probability threshold
+                data = data[data['score'] > threshold]
+                # Don't append if there are no predictions left after filtering
+                if data.shape[0] > 0:
+                    data["prediction_path"] = str(Path().joinpath(*file.parts[-3:]))
+                    appended_data.append(data)
 
-            appended_data.append(data)
+    if appended_data:
+        # We have at least one detection
+        appended_data = gpd.GeoDataFrame(pd.concat(appended_data, ignore_index=True), crs=crs)
 
-    appended_data = pd.concat(appended_data)
+        appended_data = appended_data.dissolve(by="prediction_path").explode(index_parts=False).reset_index(drop=False)
 
-    appended_data = gpd.GeoDataFrame(appended_data, columns=["label", "score", 'geometry'], crs=crs)
+        appended_data.to_file(str(output_path), driver="GPKG")
+    else:
+        output_path = ""
 
-    appended_data = appended_data.dissolve(by='ds').explode(index_parts=False).reset_index(drop=False)
-
-    appended_data.to_file(output_path.as_posix(), driver="GPKG")
-
-    return output_path.as_posix()
+    return str(output_path)
 
 
 def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5):
@@ -107,13 +106,12 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5):
     output_path : str
         Path to vector file.
     """
-
     # Prepare paths, use Path from pathlib (select one from dict, we only need parent)
     path_to_predictions = Path(list(predictions_dirs_dict.values())[0])
     # Output path (GPKG file in the data folder)
     output_path = path_to_predictions.parent / "semantic_segmentation.gpkg"
 
-    grids = []
+    appended_data = []
     for label, predicts_dir in predictions_dirs_dict.items():
         predicts_dir = Path(predicts_dir)
         tif_list = list(predicts_dir.glob(f"*.tif"))
@@ -128,6 +126,7 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5):
 
                 prediction = prob_mask.copy()
 
+                # Mask probability map by threshold for extraction of polygons
                 feature = prob_mask >= float(threshold)
                 background = prob_mask < float(threshold)
 
@@ -143,22 +142,25 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5):
                     if value == 1:
                         poly.append(shape(polygon))
 
-            # Make GeoDataFrame
+            # If there is at least one polygon, convert to GeoDataFrame and append to list for output
             if poly:
                 grid = gpd.GeoDataFrame(poly, columns=['geometry'], crs=crs)
                 grid = grid.dissolve().explode(ignore_index=True)
                 grid["label"] = label
-                # grid["ds"] = file.stem.split("_")[0]
-                grid["prob_mask_path"] = "\\".join(file.parts[-3:])  # TODO: path instead of filename
-                grids.append(grid)
+                grid["prediction_path"] = str(Path().joinpath(*file.parts[-3:]))
+                appended_data.append(grid)
 
-    grids = gpd.GeoDataFrame(pd.concat(grids, ignore_index=True), crs=crs)
+    if appended_data:
+        # We have at least one detection
+        appended_data = gpd.GeoDataFrame(pd.concat(appended_data, ignore_index=True), crs=crs)
 
-    grids = grids.dissolve(by='prob_mask_path').explode(index_parts=False).reset_index(drop=False)
+        appended_data = appended_data.dissolve(by='prediction_path').explode(index_parts=False).reset_index(drop=False)
 
-    grids.to_file(output_path.as_posix(), driver="GPKG")
+        appended_data.to_file(output_path.as_posix(), driver="GPKG")
+    else:
+        output_path = ""
 
-    return output_path.as_posix()
+    return str(output_path)
 
 
 def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
@@ -220,6 +222,63 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     Path(refgrid_name).unlink()
 
     return out_paths
+
+
+def run_aitlas_object_detection(labels, images_dir):
+    """
+
+    Parameters
+    ----------
+    labels
+    images_dir
+
+    Returns
+    -------
+    predictions_dirs: dict
+        List of
+
+    """
+    images_dir = str(images_dir)
+
+    models = {
+        "barrow": r".\ml_models\OD_barrow.tar",
+        "enclosure": r".\ml_models\OD_enclosure.tar",
+        "ringfort": r".\ml_models\OD_ringfort.tar",
+        "AO": r".\ml_models\OD_AO.tar"
+    }
+
+    if cuda.is_available():
+        print("> CUDA is available, running predictions on GPU!")
+    else:
+        print("> No CUDA detected, running predictions on CPU!")
+
+    predictions_dirs = {}
+    for label in labels:
+        # Prepare the model
+        model_config = {
+            "num_classes": 2,  # Number of classes in the dataset
+            "learning_rate": 0.0001,  # Learning rate for training
+            "pretrained": True,  # Whether to use a pretrained model or not
+            "use_cuda": cuda.is_available(),  # Set to True if you want to use GPU acceleration
+            "metrics": ["map"]  # Evaluation metrics to be used
+        }
+        model = FasterRCNN(model_config)
+        model.prepare()
+
+        # Load appropriate ADAF model
+        model_path = models.get(label)
+        model.load_model(model_path)
+        print("Model successfully loaded.")
+
+        preds_dir = make_predictions_on_patches_object_detection(
+            model=model,
+            label=label,
+            patches_folder=images_dir
+        )
+
+        predictions_dirs[label] = preds_dir
+
+    return predictions_dirs
 
 
 def run_aitlas_segmentation(labels, images_dir):
@@ -299,7 +358,7 @@ def main_routine(inp):
     logger.log_vis_inputs(dem_path, inp.vis_exist_ok)
     # vis_path is folder where visualizations are stored
     if inp.vis_exist_ok:
-        # create a virtual folder for visualization
+        # Copy visualization to results folder
         vis_path = save_dir / "visualization"
         vis_path.mkdir(parents=True, exist_ok=True)
         # Copy tif file into this folder
@@ -307,6 +366,7 @@ def main_routine(inp):
 
         # TODO: Cut image into tiles if too large
     else:
+        # Create visualisations
         t1 = time.time()
 
         # Determine nr_processes from available CPUs (leave two free)
@@ -314,9 +374,10 @@ def main_routine(inp):
         if my_cpus < 1:
             my_cpus = 1
 
-        # ## 1 ## Create visualisation
+        # The processing of the image is done on tiles (for better performance)
         # TODO: Currently hardcoded, only tiling mode works with this tile size
         tile_size_px = 1024  # Tile size has to be in base 2 (512, 1024) for inference to work!
+
         out_paths = run_visualisations(
             dem_path,
             tile_size_px,
@@ -333,7 +394,7 @@ def main_routine(inp):
     # Make sure it is a Path object!
     vis_path = Path(vis_path)
 
-    # # ## 2 ## Create patches
+    # # Create patches
     # patches_dir = create_patches(
     #     vis_path,
     #     patch_size_px,
@@ -346,49 +407,29 @@ def main_routine(inp):
     logger.log_inference_inputs(inp.ml_type)
 
     if inp.ml_type == "object detection":
-
         print("Running object detection")
-        # ## 3 ## Run the model
-        model_config = {
-            "num_classes": 4,  # Number of classes in the dataset
-            "learning_rate": 0.001,  # Learning rate for training
-            "pretrained": True,  # Whether to use a pretrained model or not
-            "use_cuda": cuda.is_available(),  # Set to True if you want to use GPU acceleration
-            "metrics": ["map"]  # Evaluation metrics to be used
-        }
-        model = FasterRCNN(model_config)
-        model.prepare()
-        model_path = r"../test_data/ml_models/model_object_detection_BRE_12.tar"
-        model.load_model(model_path)
-        print("Model successfully loaded.")
-        predictions_dict = make_predictions_on_patches_object_detection(
-            model=model,
-            patches_folder=str(vis_path)
-        )
+        predictions_dict = run_aitlas_object_detection(inp.labels, vis_path)
 
-        # ## 4 ## Create map
-        vector_path = object_detection_vectors(vis_path, predictions_dict)
+        vector_path = object_detection_vectors(predictions_dict)
         print("Created vector file", vector_path)
 
     elif inp.ml_type == "segmentation":
         print("Running segmentation")
-        # ## 3 ## Run the model
         predictions_dict = run_aitlas_segmentation(inp.labels, vis_path)
 
-        # ## 4 ## Create map
         vector_path = semantic_segmentation_vectors(predictions_dict)
         print("Created vector file", vector_path)
 
+        # Create VRT file for predictions
+        # TODO IF keep TIF, else shutil.rmtree(path)
+        for label, p_dir in predictions_dict.items():
+            print("Creating vrt for", label)
+            tif_list = glob.glob((Path(p_dir) / f"*{label}*.tif").as_posix())
+            vrt_name = save_dir / (Path(p_dir).stem + f"_{label}.vrt")
+            build_vrt_from_list(tif_list, vrt_name)
+
     else:
         raise Exception("Wrong ml_type: choose 'object detection' or 'segmentation'")
-
-    # ## 5 ## Create VRT file for predictions
-    # TODO IF keep TIF, else shutil.rmtree(path)
-    for label, p_dir in predictions_dict.items():
-        print("Creating vrt for", label)
-        tif_list = glob.glob((Path(p_dir) / f"*{label}*.tif").as_posix())
-        vrt_name = save_dir / (Path(p_dir).stem + f"_{label}.vrt")
-        build_vrt_from_list(tif_list, vrt_name)
 
     print("\n--\nFINISHED!")
 

@@ -1,64 +1,84 @@
 import os
-
-import rasterio
-
-from aitlas.transforms import ResizeV2
-from aitlas.transforms import Transpose
-from PIL import Image
-import numpy as np
-from osgeo import gdal
+import warnings
 from pathlib import Path
 from time import localtime, strftime
 
+import numpy as np
+import rasterio
+from aitlas.transforms import ResizeV2
+from aitlas.transforms import Transpose
+from osgeo import gdal
 
-import warnings
-warnings.filterwarnings("ignore", category=UserWarning) 
-warnings.filterwarnings("ignore", category=DeprecationWarning) 
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-def make_predictions_on_single_patch_store_preds(model, image_path, image_filename, predictions_dir):
-    labels = [None, 'enclosure', 'barrow', 'ringfort']
+def make_predictions_on_single_patch_store_preds_single_class(
+        model,
+        label,
+        image_path,
+        image_filename,
+        predictions_dir
+):
     transform = ResizeV2()
-    image = Image.open(image_path)
-    image = np.asarray(image)
-    image = image * 255.0
-    image = image.astype(np.float64)  # Convert to double
-    image = Image.fromarray(image).convert('RGB')
-    image = np.asarray(image) / 255.0
-    predicted = model.detect_objects_v2(image, labels, transform)
-    print("predicted", predicted)
+
+    with rasterio.open(image_path) as image_tiff:
+        image = image_tiff.read()
+        # The following are required to construct vector from txt
+        epsg = image_tiff.crs.to_epsg()
+        res = image_tiff.res[0]
+        x_min = image_tiff.transform.c
+        y_max = image_tiff.transform.f
+
+    if image.shape[0] == 1:
+        image = np.repeat(image, 3, axis=0)
+    image = np.transpose(image, (1, 2, 0))
     predictions_single_patch_str = ""
-    labels = [None, 'enclosure', 'barrow', 'ringfort']
+    predicted = model.detect_objects_v2(image, [None], transform)
+
     for i in range(0, len(predicted['boxes'])):
         box = predicted['boxes'][i].detach().numpy()
-        label = predicted['labels'][i].numpy()
         score = predicted['scores'][i].detach().numpy()
         predictions_single_patch_str += (
-            f'{round(box[0])} {round(box[1])} '
-            f'{round(box[2])} {round(box[3])} '
-            f'{labels[label]} {score}\n'
+            f'{round(box[0])} '
+            f'{round(box[1])} '
+            f'{round(box[2])} '
+            f'{round(box[3])} '
+            f'{label} '
+            f'{score:.4f} '
+            f'{epsg} {res} {x_min} {y_max}'
+            f'\n'
         )
-    file = open(predictions_dir + image_filename.split(".")[0] + ".txt", "w")
+    filepath = os.path.join(predictions_dir, f"{os.path.splitext(image_filename)[0]}_{label}_bounding_boxes.txt")
+    file = open(filepath, "w")
     file.write(predictions_single_patch_str)
     file.close()
 
 
-def make_predictions_on_patches_object_detection(model, patches_folder):
-    predictions_dir = patches_folder.split("/")[:-1]
-    predictions_dir.append("predictions_object_detection/")
-    predictions_dir = '/'.join(predictions_dir)
+def make_predictions_on_patches_object_detection(model, label, patches_folder, predictions_dir=None):
+    patches_folder = Path(patches_folder)
+    # If predictions_dir is not given, results are saved into a default folder
+    if predictions_dir is None:
+        predictions_dir = patches_folder.parent / f"predictions_object_detection_{label}"
+    else:
+        predictions_dir = Path(predictions_dir)
+    predictions_dir.mkdir(parents=True, exist_ok=True)
 
     print("Generating predictions:")
-    if not os.path.isdir(predictions_dir):
-        os.makedirs(predictions_dir)
     for file in os.listdir(patches_folder):
-        print(">>> ", file)
         if file.endswith(".tif"):
+            print(">>> ", file)
             image_path = os.path.join(patches_folder, file)
             image_filename = file
-            make_predictions_on_single_patch_store_preds(model, image_path, image_filename, predictions_dir)
+            make_predictions_on_single_patch_store_preds_single_class(
+                model,
+                label,
+                image_path,
+                image_filename,
+                str(predictions_dir)
+            )
 
-    return predictions_dir
+    return str(predictions_dir)
 
 
 def make_predictions_on_patches_segmentation(model, label, patches_folder, predictions_dir=None):
