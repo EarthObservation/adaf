@@ -39,6 +39,13 @@ txt_input_file = widgets.Text(
     disabled=False
 )
 
+chk_save_vis = widgets.Checkbox(
+    value=True,
+    description='Save visualizations',
+    disabled=False,
+    indent=False
+)
+
 chk_batch_process = widgets.Checkbox(
     value=False,
     description='Batch processing',
@@ -70,6 +77,11 @@ def input_file_handler(value):
         # Select DEM or VIS based on RB selection
         txt_input_file.description = txt_input_file_descriptions[rb_idx]
         txt_input_file.placeholder = txt_input_file_placeholders[rb_idx]
+
+    if rb_input_file.index == 0:
+        chk_save_vis.disabled = False
+    else:
+        chk_save_vis.disabled = True
 
 
 # When radio button trait changes, call the what_traits_radio function
@@ -258,6 +270,7 @@ display(
     widgets.HTML(value=f"<b>Input data options:</b>"),
     widgets.HBox([rb_input_file, chk_batch_process]),
     txt_input_file,
+    chk_save_vis,
     widgets.HTML(value=f"<b>ML options:</b>"),
     widgets.VBox([ml_methods_row, cl, classes_box, txt_custom_model, button_run_adaf]),
     output
