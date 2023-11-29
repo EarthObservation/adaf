@@ -444,7 +444,7 @@ def main_routine(inp):
                 print("Creating vrt for", label)
                 tif_list = glob.glob((Path(p_dir) / f"*{label}*.tif").as_posix())
                 vrt_name = save_dir / (Path(p_dir).stem + f"_{label}.vrt")
-                build_vcustom_model_pthrt_from_list(tif_list, vrt_name)
+                build_vrt_from_list(tif_list, vrt_name)
         else:
             for _, p_dir in predictions_dict.items():
                 shutil.rmtree(p_dir)
