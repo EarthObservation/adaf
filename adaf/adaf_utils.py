@@ -294,11 +294,13 @@ class ADAFInput:
     def __init__(self):
         self.dem_path = None
         self.vis_exist_ok = None
+        self.save_vis = None
         self.ml_type = None
         self.batch_processing = None
         self.labels = None
         self.ml_model_rbt = None
-        self.ml_model_pth = None
+        self.custom_model_pth = None
+        self.save_ml_output = None
 
     # def __getattr__(self, attr):
     #     category, key, value = attr.split('.')

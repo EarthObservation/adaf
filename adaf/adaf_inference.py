@@ -361,6 +361,7 @@ def main_routine(inp):
         # Copy visualization to results folder
         vis_path = save_dir / "visualization"
         vis_path.mkdir(parents=True, exist_ok=True)
+        vrt_path = None
         # Copy tif file into this folder
         shutil.copy(dem_path, Path(vis_path / dem_path.name))
 
@@ -413,6 +414,11 @@ def main_routine(inp):
         vector_path = object_detection_vectors(predictions_dict)
         print("Created vector file", vector_path)
 
+        # Remove predictions files (bbox txt)
+        if not inp.save_ml_output:
+            for _, p_dir in predictions_dict.items():
+                shutil.rmtree(p_dir)
+
     elif inp.ml_type == "segmentation":
         print("Running segmentation")
         predictions_dict = run_aitlas_segmentation(inp.labels, vis_path)
@@ -420,16 +426,26 @@ def main_routine(inp):
         vector_path = semantic_segmentation_vectors(predictions_dict)
         print("Created vector file", vector_path)
 
-        # Create VRT file for predictions
-        # TODO IF keep TIF, else shutil.rmtree(path)
-        for label, p_dir in predictions_dict.items():
-            print("Creating vrt for", label)
-            tif_list = glob.glob((Path(p_dir) / f"*{label}*.tif").as_posix())
-            vrt_name = save_dir / (Path(p_dir).stem + f"_{label}.vrt")
-            build_vrt_from_list(tif_list, vrt_name)
+        # Save predictions files (probability masks)
+        if inp.save_ml_output:
+            # Create VRT file for predictions
+            for label, p_dir in predictions_dict.items():
+                print("Creating vrt for", label)
+                tif_list = glob.glob((Path(p_dir) / f"*{label}*.tif").as_posix())
+                vrt_name = save_dir / (Path(p_dir).stem + f"_{label}.vrt")
+                build_vcustom_model_pthrt_from_list(tif_list, vrt_name)
+        else:
+            for _, p_dir in predictions_dict.items():
+                shutil.rmtree(p_dir)
 
     else:
         raise Exception("Wrong ml_type: choose 'object detection' or 'segmentation'")
+
+    # Remove visualizations
+    if not inp.save_vis:
+        shutil.rmtree(vis_path)
+        if vrt_path:
+            Path(vrt_path).unlink()
 
     print("\n--\nFINISHED!")
 

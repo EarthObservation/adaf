@@ -250,15 +250,23 @@ def on_button_clicked(b):
     ]
     class_selection = [a.description for a in class_selection if a.value]
 
+    # Save visualizations
+    if not vis_exist_ok and chk_save_vis.value:
+        save_vis = True
+    else:
+        save_vis = False
+
     my_input = ADAFInput()
     my_input.update(
         dem_path=txt_input_file.value,
         batch_processing=chk_batch_process.value,
         vis_exist_ok=vis_exist_ok,
+        save_vis=save_vis,
         ml_type=rb_semseg_or_objdet.value,
         classes_selection=class_selection,
         ml_model_rbt=rb_ml_switch.value,
-        ml_model_pth=txt_custom_model.value
+        custom_model_pth=txt_custom_model.value,
+        save_ml_output=chk_save_predictions.value
     )
 
     # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
