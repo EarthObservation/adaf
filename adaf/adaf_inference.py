@@ -86,7 +86,8 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths
         appended_data = gpd.GeoDataFrame(pd.concat(appended_data, ignore_index=True), crs=crs)
 
         # If same object from two different tiles overlap, join them into one
-        appended_data = appended_data.dissolve(by="label").explode(index_parts=False).reset_index(drop=False)
+        # TODO: Solve this differently (avg, max-min)
+        # appended_data = appended_data.dissolve(by="label").explode(index_parts=False).reset_index(drop=False)
 
         # Export file
         appended_data.to_file(str(output_path), driver="GPKG")
@@ -164,7 +165,8 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_
         appended_data = gpd.GeoDataFrame(pd.concat(appended_data, ignore_index=True), crs=crs)
 
         # If same object from two different tiles overlap, join them into one
-        appended_data = appended_data.dissolve(by='label').explode(index_parts=False).reset_index(drop=False)
+        # TODO: Solve this differently (avg, max-min)
+        # appended_data = appended_data.dissolve(by='label').explode(index_parts=False).reset_index(drop=False)
 
         # Export file
         appended_data.to_file(output_path.as_posix(), driver="GPKG")
