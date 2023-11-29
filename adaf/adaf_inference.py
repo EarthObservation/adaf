@@ -22,7 +22,7 @@ from adaf_utils import (make_predictions_on_patches_object_detection,
 from adaf_vis import tiled_processing
 
 
-def object_detection_vectors(predictions_dirs_dict, threshold=0.5):
+def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths=False):
     """Converts object detection bounding boxes from text to vector format.
 
     Parameters
@@ -31,6 +31,8 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5):
         Key is ML label, value is path to directory with results for that label.
     threshold : float
         Probability threshold for predictions.
+    keep_ml_paths : bool
+        If true, add path to ML predictions file from which the label was created as an attribute.
 
     Returns
     -------
@@ -72,17 +74,21 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5):
 
                 # Filter by probability threshold
                 data = data[data['score'] > threshold]
+                # Add paths to ML results
+                if keep_ml_paths:
+                    data["prediction_path"] = str(Path().joinpath(*file.parts[-3:]))
                 # Don't append if there are no predictions left after filtering
                 if data.shape[0] > 0:
-                    data["prediction_path"] = str(Path().joinpath(*file.parts[-3:]))
                     appended_data.append(data)
 
     if appended_data:
         # We have at least one detection
         appended_data = gpd.GeoDataFrame(pd.concat(appended_data, ignore_index=True), crs=crs)
 
-        appended_data = appended_data.dissolve(by="prediction_path").explode(index_parts=False).reset_index(drop=False)
+        # If same object from two different tiles overlap, join them into one
+        appended_data = appended_data.dissolve(by="label").explode(index_parts=False).reset_index(drop=False)
 
+        # Export file
         appended_data.to_file(str(output_path), driver="GPKG")
     else:
         output_path = ""
@@ -90,7 +96,7 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5):
     return str(output_path)
 
 
-def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5):
+def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths=False):
     """Converts semantic segmentation probability masks to polygons using a threshold. If more than one class, all
     predictions are stored in the same vector file, class is stored as label attribute.
 
@@ -100,6 +106,8 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5):
         Key is ML label, value is path to directory with results for that label.
     threshold : float
         Probability threshold for predictions.
+    keep_ml_paths : bool
+        If true, add path to ML predictions file from which the label was created as an attribute.
 
     Returns
     -------
@@ -144,18 +152,21 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5):
 
             # If there is at least one polygon, convert to GeoDataFrame and append to list for output
             if poly:
-                grid = gpd.GeoDataFrame(poly, columns=['geometry'], crs=crs)
-                grid = grid.dissolve().explode(ignore_index=True)
-                grid["label"] = label
-                grid["prediction_path"] = str(Path().joinpath(*file.parts[-3:]))
-                appended_data.append(grid)
+                predicted_labels = gpd.GeoDataFrame(poly, columns=['geometry'], crs=crs)
+                predicted_labels = predicted_labels.dissolve().explode(ignore_index=True)
+                predicted_labels["label"] = label
+                if keep_ml_paths:
+                    predicted_labels["prediction_path"] = str(Path().joinpath(*file.parts[-3:]))
+                appended_data.append(predicted_labels)
 
     if appended_data:
         # We have at least one detection
         appended_data = gpd.GeoDataFrame(pd.concat(appended_data, ignore_index=True), crs=crs)
 
-        appended_data = appended_data.dissolve(by='prediction_path').explode(index_parts=False).reset_index(drop=False)
+        # If same object from two different tiles overlap, join them into one
+        appended_data = appended_data.dissolve(by='label').explode(index_parts=False).reset_index(drop=False)
 
+        # Export file
         appended_data.to_file(output_path.as_posix(), driver="GPKG")
     else:
         output_path = ""
@@ -411,7 +422,7 @@ def main_routine(inp):
         print("Running object detection")
         predictions_dict = run_aitlas_object_detection(inp.labels, vis_path)
 
-        vector_path = object_detection_vectors(predictions_dict)
+        vector_path = object_detection_vectors(predictions_dict, keep_ml_paths=inp.save_ml_output)
         print("Created vector file", vector_path)
 
         # Remove predictions files (bbox txt)
@@ -423,7 +434,7 @@ def main_routine(inp):
         print("Running segmentation")
         predictions_dict = run_aitlas_segmentation(inp.labels, vis_path)
 
-        vector_path = semantic_segmentation_vectors(predictions_dict)
+        vector_path = semantic_segmentation_vectors(predictions_dict, keep_ml_paths=inp.save_ml_output)
         print("Created vector file", vector_path)
 
         # Save predictions files (probability masks)
