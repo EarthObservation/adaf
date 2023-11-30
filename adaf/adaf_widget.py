@@ -213,6 +213,38 @@ def chk_save_predictions_handler(value):
 
 rb_semseg_or_objdet.observe(chk_save_predictions_handler)
 
+# ~~~~~~~~~~~~~~~~~~~~~~~~ POST PROCESSING ~~~~~~~~~~~~~~~~~~~~~~~~
+
+fs_area = widgets.FloatSlider(
+    value=40,
+    min=0,
+    max=40,
+    step=1,
+    # description='Select max area [m^2]:',
+    disabled=False,
+    continuous_update=False,
+    orientation='horizontal',
+    readout=True,
+    readout_format='.1f',
+    # layout=widgets.Layout(width='98%'),
+    # style=style
+)
+
+fs_long_thin = widgets.FloatSlider(
+    value=0.3,
+    min=0,
+    max=0.5,
+    step=0.05,
+    # description='Select max "longness ratio":',
+    disabled=False,
+    continuous_update=False,
+    orientation='horizontal',
+    readout=True,
+    readout_format='.2f',
+    # layout=widgets.Layout(width='98%'),
+    # style=style
+)
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~ BUTTON OF DOOM (click to run the app) ~~~~~~~~~~~~~~~~~~~~~~~~
 button_run_adaf = widgets.Button(
     description="Run ADAF",
@@ -292,6 +324,17 @@ classes_box = widgets.GridBox(
     )
 )
 
+post_proc_box = widgets.GridBox(
+    children=[widgets.HTML(value='Select min area [m<sup>2</sup>]:'), fs_area,
+              widgets.HTML(value='Select max spatial index [-]:'), fs_long_thin],
+    layout=widgets.Layout(
+        width='60%',
+        grid_template_columns='30% 20%',
+        grid_template_rows='30px auto',
+        grid_gap='1px'
+    )
+)
+
 ml_methods_row = widgets.HBox([rb_semseg_or_objdet, rb_ml_switch])
 
 # This controls the overall display elements
@@ -301,6 +344,15 @@ display(
     txt_input_file,
     chk_save_vis,
     widgets.HTML(value=f"<b>ML options:</b>"),
-    widgets.VBox([ml_methods_row, cl, classes_box, txt_custom_model, chk_save_predictions, button_run_adaf]),
+    widgets.VBox([
+        ml_methods_row,
+        cl,
+        classes_box,
+        txt_custom_model,
+        widgets.HTML(value=f"<b>Post-processing options:</b>"),
+        post_proc_box,
+        chk_save_predictions,
+        button_run_adaf
+    ]),
     output
 )

@@ -360,7 +360,11 @@ def main_routine(inp):
     time_started = localtime()
 
     # Save results to parent folder of input file
-    save_dir = Path(dem_path).parent / (dem_path.stem + strftime("_%Y%m%d_%H%M%S", time_started))
+    if inp.ml_type == "object detection":
+        suff = "_obj"
+    else:
+        suff = "_seg"
+    save_dir = Path(dem_path).parent / (dem_path.stem + strftime("_%Y%m%d_%H%M%S", time_started) + suff)
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # Create logfile
@@ -390,7 +394,7 @@ def main_routine(inp):
 
         # The processing of the image is done on tiles (for better performance)
         # TODO: Currently hardcoded, only tiling mode works with this tile size
-        tile_size_px = 1024  # Tile size has to be in base 2 (512, 1024) for inference to work!
+        tile_size_px = 1000  # Tile size has to be in base 2 (512, 1024) for inference to work!
 
         out_paths = run_visualisations(
             dem_path,
@@ -425,7 +429,10 @@ def main_routine(inp):
         predictions_dict = run_aitlas_object_detection(inp.labels, vis_path)
 
         vector_path = object_detection_vectors(predictions_dict, keep_ml_paths=inp.save_ml_output)
-        print("Created vector file", vector_path)
+        if vector_path != "":
+            print("Created vector file", vector_path)
+        else:
+            print("No archaeology detected")
 
         # Remove predictions files (bbox txt)
         if not inp.save_ml_output:
@@ -437,7 +444,10 @@ def main_routine(inp):
         predictions_dict = run_aitlas_segmentation(inp.labels, vis_path)
 
         vector_path = semantic_segmentation_vectors(predictions_dict, keep_ml_paths=inp.save_ml_output)
-        print("Created vector file", vector_path)
+        if vector_path != "":
+            print("Created vector file", vector_path)
+        else:
+            print("No archaeology detected")
 
         # Save predictions files (probability masks)
         if inp.save_ml_output:
