@@ -34,7 +34,7 @@ rb_input_file = widgets.RadioButtons(
 txt_input_file = widgets.Text(
     description=txt_input_file_descriptions[0],
     placeholder=txt_input_file_placeholders[0],
-    layout=widgets.Layout(width='98%'),
+    layout=widgets.Layout(width='65%'),
     style=style,
     disabled=False
 )
@@ -163,7 +163,7 @@ txt_custom_model = widgets.Text(
     description='Path to custom ML model [*.tar]:',
     placeholder="model_folder/saved_model.tar",
     style=style,
-    layout=widgets.Layout(width='98%'),
+    layout=widgets.Layout(width='65%'),
     disabled=True
 )
 
@@ -216,7 +216,7 @@ rb_semseg_or_objdet.observe(chk_save_predictions_handler)
 # ~~~~~~~~~~~~~~~~~~~~~~~~ POST PROCESSING ~~~~~~~~~~~~~~~~~~~~~~~~
 
 fs_area = widgets.FloatSlider(
-    value=40,
+    value=30,
     min=0,
     max=40,
     step=1,
@@ -231,9 +231,9 @@ fs_area = widgets.FloatSlider(
 )
 
 fs_long_thin = widgets.FloatSlider(
-    value=0.3,
+    value=0.75,
     min=0,
-    max=0.5,
+    max=0.95,
     step=0.05,
     # description='Select max "longness ratio":',
     disabled=False,
@@ -248,7 +248,7 @@ fs_long_thin = widgets.FloatSlider(
 # ~~~~~~~~~~~~~~~~~~~~~~~~ BUTTON OF DOOM (click to run the app) ~~~~~~~~~~~~~~~~~~~~~~~~
 button_run_adaf = widgets.Button(
     description="Run ADAF",
-    layout={'width': '98%', 'border': '1px solid black'}  # widgets.Layout(width='98%'), 'border': '1px solid black'
+    layout={'width': '65%', 'border': '1px solid black'}  # widgets.Layout(width='98%'), 'border': '1px solid black'
 )
 
 # Define output Context manager
@@ -295,7 +295,7 @@ def on_button_clicked(b):
         vis_exist_ok=vis_exist_ok,
         save_vis=save_vis,
         ml_type=rb_semseg_or_objdet.value,
-        classes_selection=class_selection,
+        labels=class_selection,
         ml_model_rbt=rb_ml_switch.value,
         custom_model_pth=txt_custom_model.value,
         save_ml_output=chk_save_predictions.value
@@ -326,7 +326,7 @@ classes_box = widgets.GridBox(
 
 post_proc_box = widgets.GridBox(
     children=[widgets.HTML(value='Select min area [m<sup>2</sup>]:'), fs_area,
-              widgets.HTML(value='Select max spatial index [-]:'), fs_long_thin],
+              widgets.HTML(value='Select min roundness:'), fs_long_thin],
     layout=widgets.Layout(
         width='60%',
         grid_template_columns='30% 20%',

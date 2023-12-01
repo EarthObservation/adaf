@@ -293,10 +293,10 @@ class Logger:
 class ADAFInput:
     def __init__(self):
         self.dem_path = None
+        self.batch_processing = None
         self.vis_exist_ok = None
         self.save_vis = None
         self.ml_type = None
-        self.batch_processing = None
         self.labels = None
         self.ml_model_rbt = None
         self.custom_model_pth = None
