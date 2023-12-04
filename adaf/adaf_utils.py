@@ -269,7 +269,7 @@ class Logger:
 
         return log_entry
 
-    def log_inference_inputs(self, ml_method):
+    def log_inference_inputs(self, ml_method, ml_model, ml_labels):
         """Creates a header for a new section in the log file"""
 
         if ml_method == "segmentation":
@@ -278,12 +278,73 @@ class Logger:
         if ml_method == "object detection":
             ml_method = ml_method.capitalize()
 
+        # Write labels
+        # log_labels = ""
+        # for lbl in ml_labels:
+        #     log_labels += 17 * " " + f"* {lbl}\n"
+
+        lbl = "\n" + 22 * " " + "* "
+        log_labels = lbl.join(ml_labels)
+
         log_entry = (
             f"=================================================================================\n"
             f"Inference log:\n"
             "\n"
-            f"ML method: {ml_method}\n"
+            f"    ML method: {ml_method}\n"
+            f"    ML model: {ml_model}\n"
+            f"    Selected classes: * {log_labels}"
             f"\n"
+        )
+
+        with open(self.log_file_path, 'a') as log_file:
+            log_file.write(log_entry)
+
+    def log_inference_results(self, vector_path, processing_time, list_to_raw_files):
+        """Creates a header for a new section in the log file"""
+
+        vector_path = Path(vector_path)
+
+        # Count number of created tiles
+        log_raw = ""
+        if list_to_raw_files:
+            for raw in list_to_raw_files:
+                log_raw += f"      > {raw}\n"
+            log_raw = f"    Save RAW results:  YES\n{log_raw}"
+        else:
+            log_raw = f"    Save RAW results:  NO\n"
+
+        # PROCESSING TIME IS IN SECONDS
+        if processing_time >= 60:
+            processing_time = processing_time / 60
+            time_unit = "min"
+        else:
+            time_unit = "sec"
+
+        log_entry = (
+            f"\n"
+            f"    Results vector file:\n"
+            f"      > {vector_path}\n"
+            f"\n{log_raw}"
+            f"\n"
+            f"TIME: {processing_time:.1f} {time_unit}\n"
+            f"\n"
+        )
+
+        with open(self.log_file_path, 'a') as log_file:
+            log_file.write(log_entry)
+
+    def log_time(self, processing_time):
+        """Creates a header for a new section in the log file"""
+        # PROCESSING TIME IS IN SECONDS
+        if processing_time >= 60:
+            processing_time = processing_time / 60
+            time_unit = "min"
+        else:
+            time_unit = "sec"
+
+        log_entry = (
+            f"=================================================================================\n"
+            f"TOTAL TIME: {processing_time:.1f} {time_unit}\n\n"
         )
 
         with open(self.log_file_path, 'a') as log_file:

@@ -450,8 +450,10 @@ def main_routine(inp):
     # shutil.rmtree(vis_path)
 
     # INFERENCE
-    logger.log_inference_inputs(inp.ml_type)
-
+    logger.log_inference_inputs(inp.ml_type, inp.ml_model_rbt, inp.labels)
+    # For logger
+    save_raw = []
+    t2 = time.time()
     if inp.ml_type == "object detection":
         print("Running object detection")
         predictions_dict = run_aitlas_object_detection(inp.labels, vis_path)
@@ -466,6 +468,8 @@ def main_routine(inp):
         if not inp.save_ml_output:
             for _, p_dir in predictions_dict.items():
                 shutil.rmtree(p_dir)
+        else:
+            save_raw = [a for _, a in predictions_dict.items()]
 
     elif inp.ml_type == "segmentation":
         print("Running segmentation")
@@ -490,18 +494,25 @@ def main_routine(inp):
                 tif_list = glob.glob((Path(p_dir) / f"*{label}*.tif").as_posix())
                 vrt_name = save_dir / (Path(p_dir).stem + ".vrt")
                 build_vrt_from_list(tif_list, vrt_name)
+                save_raw.append(vrt_name)
         else:
             for _, p_dir in predictions_dict.items():
                 shutil.rmtree(p_dir)
 
     else:
         raise Exception("Wrong ml_type: choose 'object detection' or 'segmentation'")
+    t2 = time.time() - t2
+
+    logger.log_inference_results(vector_path, t2, save_raw)
 
     # Remove visualizations
     if not inp.save_vis:
         shutil.rmtree(vis_path)
         if vrt_path:
             Path(vrt_path).unlink()
+
+    # TOTAL PROCESSING TIME
+    logger.log_time(localtime() - time_started)
 
     print("\n--\nFINISHED!")
 

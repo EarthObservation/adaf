@@ -230,14 +230,12 @@ fs_area = widgets.FloatSlider(
     min=0,
     max=40,
     step=1,
-    # description='Select max area [m^2]:',
     disabled=False,
     continuous_update=False,
     orientation='horizontal',
     readout=True,
     readout_format='.1f',
-    # layout=widgets.Layout(width='98%'),
-    # style=style
+
 )
 
 fs_roundness = widgets.FloatSlider(
@@ -245,14 +243,12 @@ fs_roundness = widgets.FloatSlider(
     min=0,
     max=0.95,
     step=0.05,
-    # description='Select max "longness ratio":',
     disabled=False,
     continuous_update=False,
     orientation='horizontal',
     readout=True,
     readout_format='.2f',
-    # layout=widgets.Layout(width='98%'),
-    # style=style
+
 )
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ BUTTON OF DOOM (click to run the app) ~~~~~~~~~~~~~~~~~~~~~~~~
