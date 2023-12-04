@@ -230,7 +230,7 @@ fs_area = widgets.FloatSlider(
     # style=style
 )
 
-fs_long_thin = widgets.FloatSlider(
+fs_roundness = widgets.FloatSlider(
     value=0.75,
     min=0,
     max=0.95,
@@ -298,7 +298,9 @@ def on_button_clicked(b):
         labels=class_selection,
         ml_model_rbt=rb_ml_switch.value,
         custom_model_pth=txt_custom_model.value,
-        save_ml_output=chk_save_predictions.value
+        save_ml_output=chk_save_predictions.value,
+        roundness=fs_roundness.value,
+        min_area=fs_area.value
     )
 
     # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
@@ -338,7 +340,7 @@ classes_box = widgets.GridBox(
 
 post_proc_box = widgets.GridBox(
     children=[widgets.HTML(value='Select min area [m<sup>2</sup>]:'), fs_area,
-              widgets.HTML(value='Select min roundness:'), fs_long_thin],
+              widgets.HTML(value='Select min roundness:'), fs_roundness],
     layout=widgets.Layout(
         width='60%',
         grid_template_columns='30% 20%',

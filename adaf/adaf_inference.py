@@ -6,6 +6,7 @@ from pathlib import Path
 from time import localtime, strftime
 
 import geopandas as gpd
+import numpy as np
 import pandas as pd
 import rasterio
 from aitlas.models import FasterRCNN, HRNet
@@ -97,7 +98,8 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths
     return str(output_path)
 
 
-def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths=False):
+def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5,
+                                  keep_ml_paths=False, roundness=None, min_area=None):
     """Converts semantic segmentation probability masks to polygons using a threshold. If more than one class, all
     predictions are stored in the same vector file, class is stored as label attribute.
 
@@ -109,6 +111,11 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_
         Probability threshold for predictions.
     keep_ml_paths : bool
         If true, add path to ML predictions file from which the label was created as an attribute.
+    roundness : float
+        Roundness threshold for post-processing. Remove features that fall below the threshold.
+        For perfect circle roundness is 1, for square 0.785, and goes towards 0 for irregular shapes.
+    min_area : float
+        Minimum area threshold in m^2 (max = 40 m^2).
 
     Returns
     -------
@@ -120,7 +127,7 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_
     # Output path (GPKG file in the data folder)
     output_path = path_to_predictions.parent / "semantic_segmentation.gpkg"
 
-    appended_data = []
+    gdf_out = []
     for label, predicts_dir in predictions_dirs_dict.items():
         predicts_dir = Path(predicts_dir)
         tif_list = list(predicts_dir.glob(f"*.tif"))
@@ -158,18 +165,26 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_
                 predicted_labels["label"] = label
                 if keep_ml_paths:
                     predicted_labels["prediction_path"] = str(Path().joinpath(*file.parts[-3:]))
-                appended_data.append(predicted_labels)
+                gdf_out.append(predicted_labels)
 
-    if appended_data:
+    if gdf_out:
         # We have at least one detection
-        appended_data = gpd.GeoDataFrame(pd.concat(appended_data, ignore_index=True), crs=crs)
+        gdf_out = gpd.GeoDataFrame(pd.concat(gdf_out, ignore_index=True), crs=crs)
 
         # If same object from two different tiles overlap, join them into one
         # TODO: Solve this differently (avg, max-min)
-        # appended_data = appended_data.dissolve(by='label').explode(index_parts=False).reset_index(drop=False)
+        # gdf_out = gdf_out.dissolve(by='label').explode(index_parts=False).reset_index(drop=False)
+
+        # Post-processing
+        if roundness:
+            gdf_out["roundness"] = 4 * np.pi * gdf_out.geometry.area / (gdf_out.geometry.convex_hull.length ** 2)
+            gdf_out = gdf_out[gdf_out["roundness"] > roundness]
+        if min_area:
+            gdf_out["area"] = gdf_out.geometry.area
+            gdf_out = gdf_out[gdf_out["area"] > min_area]
 
         # Export file
-        appended_data.to_file(output_path.as_posix(), driver="GPKG")
+        gdf_out.to_file(output_path.as_posix(), driver="GPKG")
     else:
         output_path = ""
 
@@ -456,7 +471,12 @@ def main_routine(inp):
         print("Running segmentation")
         predictions_dict = run_aitlas_segmentation(inp.labels, vis_path)
 
-        vector_path = semantic_segmentation_vectors(predictions_dict, keep_ml_paths=inp.save_ml_output)
+        vector_path = semantic_segmentation_vectors(
+            predictions_dict,
+            keep_ml_paths=inp.save_ml_output,
+            roundness=inp.roundness,
+            min_area=inp.min_area
+        )
         if vector_path != "":
             print("Created vector file", vector_path)
         else:

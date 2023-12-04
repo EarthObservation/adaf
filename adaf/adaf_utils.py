@@ -301,6 +301,8 @@ class ADAFInput:
         self.ml_model_rbt = None
         self.custom_model_pth = None
         self.save_ml_output = None
+        self.roundness = None
+        self.min_area = None
 
     # def __getattr__(self, attr):
     #     category, key, value = attr.split('.')
