@@ -2,6 +2,7 @@ import ipywidgets as widgets
 from IPython.display import display
 from adaf_inference import main_routine
 from adaf_utils import ADAFInput
+from pathlib import Path
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ INPUT FILES ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -277,50 +278,76 @@ def on_button_clicked(b):
 
     button_run_adaf.disabled = True
 
-    # Prepare input parameter for processing visualization
-    if rb_input_file.index == 0:
-        # DEM is selected
-        vis_exist_ok = False
+    # Check if paths are correct
+    dem_path = Path(txt_input_file.value)
+    if dem_path.is_file():
+        dem_file_ok = True
     else:
-        # Visualization is selected
-        vis_exist_ok = True
+        with output:
+            display("The specified DEM file doesn't exist!")
+        dem_file_ok = False
 
-    # Select classes
-    class_selection = [
-        class_barrow,
-        class_ringfort,
-        class_enclosure,
-        class_all_archaeology,
-    ]
-    class_selection = [select_class(a) for a in class_selection if a.value]
-
-    # Save visualizations
-    if not vis_exist_ok and chk_save_vis.value:
-        save_vis = True
+    # Check if paths are correct for custom model
+    custom_model_pth = Path(txt_custom_model.value)
+    if rb_ml_switch.index == 0:
+        custom_tar_ok = True
+    elif rb_ml_switch.index == 1 and custom_model_pth.is_file():
+        custom_tar_ok = True
     else:
-        save_vis = False
+        with output:
+            display("The specified Custom Model file doesn't exist!")
+        custom_tar_ok = False
 
-    # Save values into input object  # TODO: have a dict that is updated with every event!
-    my_input = ADAFInput()
-    my_input.update(
-        dem_path=txt_input_file.value,
-        batch_processing=chk_batch_process.value,
-        vis_exist_ok=vis_exist_ok,
-        save_vis=save_vis,
-        ml_type=rb_semseg_or_objdet.value,
-        labels=class_selection,
-        ml_model_rbt=rb_ml_switch.value,
-        custom_model_pth=txt_custom_model.value,
-        save_ml_output=chk_save_predictions.value,
-        roundness=fs_roundness.value,
-        min_area=fs_area.value
-    )
+    run_app = dem_file_ok and custom_tar_ok
 
-    # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
-    final_adaf_output = main_routine(my_input)
+    if run_app:
+        # Prepare input parameter for processing visualization
+        if rb_input_file.index == 0:
+            # DEM is selected
+            vis_exist_ok = False
+        else:
+            # Visualization is selected
+            vis_exist_ok = True
 
-    with output:
-        display(final_adaf_output)
+        # Select classes
+        class_selection = [
+            class_barrow,
+            class_ringfort,
+            class_enclosure,
+            class_all_archaeology,
+        ]
+        class_selection = [select_class(a) for a in class_selection if a.value]
+
+        # Save visualizations
+        if not vis_exist_ok and chk_save_vis.value:
+            save_vis = True
+        else:
+            save_vis = False
+
+        # Save values into input object  # TODO: have a dict that is updated with every event!
+        my_input = ADAFInput()
+        my_input.update(
+            dem_path=txt_input_file.value,
+            batch_processing=chk_batch_process.value,
+            vis_exist_ok=vis_exist_ok,
+            save_vis=save_vis,
+            ml_type=rb_semseg_or_objdet.value,
+            labels=class_selection,
+            ml_model_rbt=rb_ml_switch.value,
+            custom_model_pth=txt_custom_model.value,
+            save_ml_output=chk_save_predictions.value,
+            roundness=fs_roundness.value,
+            min_area=fs_area.value
+        )
+
+        with output:
+            display("Inputs check complete.")
+            display("RUNNING ADAF!")
+        # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
+        final_adaf_output = main_routine(my_input)
+
+        with output:
+            display(final_adaf_output)
 
     button_run_adaf.disabled = False
 
