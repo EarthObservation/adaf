@@ -210,6 +210,15 @@ chk_save_predictions = widgets.Checkbox(
 def chk_save_predictions_handler(value):
     chk_save_predictions.description = chk_save_predictions_descriptions[rb_semseg_or_objdet.index]
 
+    if value.new == 0:
+        # Segmentation
+        fs_roundness.disabled = False
+        fs_area.disabled = False
+    elif value.new == 1:
+        # Segmentation
+        fs_roundness.disabled = True
+        fs_area.disabled = True
+
 
 rb_semseg_or_objdet.observe(chk_save_predictions_handler)
 
