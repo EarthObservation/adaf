@@ -277,10 +277,10 @@ def on_button_clicked(b):
     class_selection = [
         class_barrow,
         class_ringfort,
+        class_enclosure,
         class_all_archaeology,
-        class_ringfort
     ]
-    class_selection = [a.description for a in class_selection if a.value]
+    class_selection = [select_class(a) for a in class_selection if a.value]
 
     # Save visualizations
     if not vis_exist_ok and chk_save_vis.value:
@@ -308,6 +308,18 @@ def on_button_clicked(b):
 
 
 button_run_adaf.on_click(on_button_clicked)
+
+
+def select_class(chk_widget):
+    if chk_widget.value:
+        a = chk_widget.description.lower()
+        if a == "all archaeology":
+            a = "AO"
+    else:
+        a = None
+
+    return a
+
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ DISPLAYING WIDGETS ~~~~~~~~~~~~~~~~~~~~~~~~
 # The classes sub-group
