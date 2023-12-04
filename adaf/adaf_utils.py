@@ -203,7 +203,7 @@ class Logger:
         with open(self.log_file_path, 'a') as log_file:
             log_file.write(log_entry)
 
-    def log_vis_results(self, vis_dir, vrt_path, processing_time):
+    def log_vis_results(self, vis_dir, vrt_path, save_vis, processing_time):
         vis_dir = Path(vis_dir)
         vrt_path = Path(vrt_path)
 
@@ -217,13 +217,19 @@ class Logger:
         else:
             time_unit = "sec"
 
+        if save_vis:
+            sv = (
+                f"    save visualization: YES\n"
+                f"    tiles location:     {vis_dir}\n"
+                f"    tiles count:        {tiles_count}\n"
+                f"    VRT file path:      {vrt_path}\n"
+                f"\n"
+            )
+        else:
+            sv = f"    save visualization: NO\n\n"
+
         log_entry = (
-            f"    tiling:             YES\n"
-            f"    save visualization: YES\n"
-            f"    tiles location:     {vis_dir}\n"
-            f"    tiles count:        {tiles_count}\n"
-            f"    VRT file path:      {vrt_path}\n"
-            f"\n"
+            f"{sv}"
             f"TIME: {processing_time:.1f} {time_unit}\n"
             f"\n"
         )
@@ -333,7 +339,7 @@ class Logger:
         with open(self.log_file_path, 'a') as log_file:
             log_file.write(log_entry)
 
-    def log_time(self, processing_time):
+    def log_total_time(self, processing_time):
         """Creates a header for a new section in the log file"""
         # PROCESSING TIME IS IN SECONDS
         if processing_time >= 60:
