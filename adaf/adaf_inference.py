@@ -253,6 +253,7 @@ def run_aitlas_object_detection(labels, images_dir):
     """
     images_dir = str(images_dir)
 
+    # Paths to models are relative to the script path
     models = {
         "barrow": r".\ml_models\OD_barrow.tar",
         "enclosure": r".\ml_models\OD_enclosure.tar",
@@ -278,8 +279,11 @@ def run_aitlas_object_detection(labels, images_dir):
         model = FasterRCNN(model_config)
         model.prepare()
 
-        # Load appropriate ADAF model
+        # Prepare path to the model
         model_path = models.get(label)
+        # Path is relative to the Current script directory
+        model_path = Path(__file__).resolve().parent / model_path
+        # Load appropriate ADAF model
         model.load_model(model_path)
         print("Model successfully loaded.")
 
@@ -310,6 +314,7 @@ def run_aitlas_segmentation(labels, images_dir):
     """
     images_dir = str(images_dir)
 
+    # Paths to models are relative to the script path
     models = {
         "barrow": r".\ml_models\barrow_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
         "enclosure": r".\ml_models\enclosure_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
@@ -336,8 +341,16 @@ def run_aitlas_segmentation(labels, images_dir):
         model = HRNet(model_config)
         model.prepare()
 
-        # Load appropriate ADAF model
+        print(label)
+
+        # Prepare path to the model
         model_path = models.get(label)
+        # Path is relative to the Current script directory
+        model_path = Path(__file__).resolve().parent / model_path
+
+        print(model_path)
+
+        # Load appropriate ADAF model
         model.load_model(model_path)
         print("Model successfully loaded.")
 
@@ -394,7 +407,7 @@ def main_routine(inp):
 
         # The processing of the image is done on tiles (for better performance)
         # TODO: Currently hardcoded, only tiling mode works with this tile size
-        tile_size_px = 1000  # Tile size has to be in base 2 (512, 1024) for inference to work!
+        tile_size_px = 1024  # Tile size has to be in base 2 (512, 1024) for inference to work!
 
         out_paths = run_visualisations(
             dem_path,
@@ -455,7 +468,7 @@ def main_routine(inp):
             for label, p_dir in predictions_dict.items():
                 print("Creating vrt for", label)
                 tif_list = glob.glob((Path(p_dir) / f"*{label}*.tif").as_posix())
-                vrt_name = save_dir / (Path(p_dir).stem + f"_{label}.vrt")
+                vrt_name = save_dir / (Path(p_dir).stem + ".vrt")
                 build_vrt_from_list(tif_list, vrt_name)
         else:
             for _, p_dir in predictions_dict.items():
