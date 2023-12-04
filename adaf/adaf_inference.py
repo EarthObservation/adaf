@@ -517,3 +517,20 @@ def main_routine(inp):
     print("\n--\nFINISHED!")
 
     return vector_path
+
+
+def batch_routine(inp):
+    print("Started BATCH PROCESSING!")
+
+    # Parse input file list
+    batch_list_pth = Path(inp.dem_path)
+    with batch_list_pth.open(mode="r", encoding="utf-8") as md_file:
+        batch_list = md_file.read().splitlines()
+
+    for file in batch_list:
+        print(" >>> ", file)
+        inp.update(dem_path=file)
+
+        main_routine(inp)
+
+    return "FINISHED BATCH PROCESSING"

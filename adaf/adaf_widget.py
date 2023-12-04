@@ -1,6 +1,6 @@
 import ipywidgets as widgets
 from IPython.display import display
-from adaf_inference import main_routine
+from adaf_inference import main_routine, batch_routine
 from adaf_utils import ADAFInput
 from pathlib import Path
 
@@ -340,7 +340,10 @@ def on_button_clicked(b):
             display("Inputs check complete.")
             display("RUNNING ADAF!")
         # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
-        final_adaf_output = main_routine(my_input)
+        if chk_batch_process.value:
+            final_adaf_output = batch_routine(my_input)
+        else:
+            final_adaf_output = main_routine(my_input)
 
         with output:
             display(final_adaf_output)
