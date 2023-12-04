@@ -20,7 +20,7 @@ from adaf_utils import (make_predictions_on_patches_object_detection,
                         make_predictions_on_patches_segmentation,
                         build_vrt_from_list,
                         Logger)
-from adaf_vis import tiled_processing
+from adaf_vis import tiled_processing, image_tiling
 
 
 def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths=False):
@@ -206,15 +206,11 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     # Prepare paths
     in_file = Path(dem_path)
 
-    # save_vis = save_dir / "vis"
-    # save_vis.mkdir(parents=True, exist_ok=True)
-    save_vis = save_dir  # TODO: figure out folder structure for outputs
-
     # === STEP 1 ===
     # We need polygon covering valid data
     valid_data_outline = gt.poly_from_valid(
         in_file.as_posix(),
-        save_gpkg=save_vis  # directory where *_validDataMask.gpkg will be stored
+        save_gpkg=save_dir  # directory where *_validDataMask.gpkg will be stored
     )
 
     # === STEP 2 ===
@@ -239,7 +235,64 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
         input_vrt_path=in_file.as_posix(),
         ext_list=tiles_extents,
         nr_processes=nr_processes,
-        ll_dir=Path(save_vis)
+        ll_dir=Path(save_dir)
+    )
+
+    # Remove reference grid and valid data mask files
+    Path(valid_data_outline).unlink()
+    Path(refgrid_name).unlink()
+
+    return out_paths
+
+
+def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
+    """Calculates visualisations from DEM and saves them into VRT (Geotiff) file.
+
+    Uses RVT (see adaf_vis.py).
+
+    dem_path:
+        Can be any raster file (GeoTIFF and VRT supported.)
+    tile_size:
+        In pixels
+    save_dir:
+        Save directory
+    nr_processes:
+        Number of processes for parallel computing
+
+    """
+    # Prepare paths
+    in_file = Path(dem_path)
+
+    # === STEP 1 ===
+    # We need polygon covering valid data
+    valid_data_outline = gt.poly_from_valid(
+        in_file.as_posix(),
+        save_gpkg=save_dir  # directory where *_validDataMask.gpkg will be stored
+    )
+
+    # === STEP 2 ===
+    # Create reference grid, filter it and save it to disk
+    tiles_extents = gt.bounding_grid(
+        in_file.as_posix(),
+        tile_size,
+        tag=False
+    )
+    refgrid_name = in_file.as_posix()[:-4] + "_refgrid.gpkg"
+    tiles_extents = gt.filter_by_outline(
+        tiles_extents,
+        valid_data_outline,
+        save_gpkg=True,
+        save_path=refgrid_name
+    )
+
+    # === STEP 3 ===
+    # Run tiling
+    print("Start RVT vis")
+    out_paths = image_tiling(
+        source_path=in_file.as_posix(),
+        ext_list=tiles_extents,
+        nr_processes=nr_processes,
+        save_dir=Path(save_dir)
     )
 
     # Remove reference grid and valid data mask files
@@ -383,6 +436,7 @@ def main_routine(inp):
 
     # Create unique name for results
     time_started = localtime()
+    t0 = time.time()
 
     # Save results to parent folder of input file
     if inp.ml_type == "object detection":
@@ -396,31 +450,28 @@ def main_routine(inp):
     log_path = save_dir / "logfile.txt"
     logger = Logger(log_path, log_time=time_started)
 
-    # VISUALIZATIONS
+    # --- VISUALIZATIONS ---
     logger.log_vis_inputs(dem_path, inp.vis_exist_ok)
+    t1 = time.time()
+
+    # Determine nr_processes from available CPUs (leave two free)
+    my_cpus = os.cpu_count() - 2
+    if my_cpus < 1:
+        my_cpus = 1
+    # The processing of the image is done on tiles (for better performance)
+    tile_size_px = 1024  # Tile size has to be in base 2 (512, 1024) for inference to work!
+
     # vis_path is folder where visualizations are stored
     if inp.vis_exist_ok:
-        # Copy visualization to results folder
-        vis_path = save_dir / "visualization"
-        vis_path.mkdir(parents=True, exist_ok=True)
-        vrt_path = None
-        # Copy tif file into this folder
-        shutil.copy(dem_path, Path(vis_path / dem_path.name))
-
-        # TODO: Cut image into tiles if too large
+        # Create tiles (because image pix size has to be divisible by 32)
+        out_paths = run_tiling(
+            dem_path,
+            tile_size_px,
+            save_dir=save_dir.as_posix(),
+            nr_processes=my_cpus
+        )
     else:
         # Create visualisations
-        t1 = time.time()
-
-        # Determine nr_processes from available CPUs (leave two free)
-        my_cpus = os.cpu_count() - 2
-        if my_cpus < 1:
-            my_cpus = 1
-
-        # The processing of the image is done on tiles (for better performance)
-        # TODO: Currently hardcoded, only tiling mode works with this tile size
-        tile_size_px = 1024  # Tile size has to be in base 2 (512, 1024) for inference to work!
-
         out_paths = run_visualisations(
             dem_path,
             tile_size_px,
@@ -428,25 +479,16 @@ def main_routine(inp):
             nr_processes=my_cpus
         )
 
-        vis_path = out_paths["output_directory"]
-        vrt_path = out_paths["vrt_path"]
-        t1 = time.time() - t1
+    vis_path = out_paths["output_directory"]
+    vrt_path = out_paths["vrt_path"]
 
-        logger.log_vis_results(vis_path, vrt_path, t1)
+    t1 = time.time() - t1
+    logger.log_vis_results(vis_path, vrt_path, inp.vis_exist_ok, t1)
 
     # Make sure it is a Path object!
     vis_path = Path(vis_path)
 
-    # # Create patches
-    # patches_dir = create_patches(
-    #     vis_path,
-    #     patch_size_px,
-    #     save_dir,
-    #     nr_processes=nr_processes
-    # )
-    # shutil.rmtree(vis_path)
-
-    # INFERENCE
+    # --- INFERENCE ---
     logger.log_inference_inputs(inp.ml_type, inp.ml_model_rbt, inp.labels)
     # For logger
     save_raw = []
@@ -509,7 +551,8 @@ def main_routine(inp):
             Path(vrt_path).unlink()
 
     # TOTAL PROCESSING TIME
-    logger.log_time(localtime() - time_started)
+    t0 = time.time() - t0
+    logger.log_total_time(t0)
 
     print("\n--\nFINISHED!")
 
