@@ -275,6 +275,9 @@ def on_button_clicked(b):
     model_path - hard coded based on the inp2.value (segmentation or object detection)
     """
 
+    button_run_adaf.disabled = True
+
+    # Prepare input parameter for processing visualization
     if rb_input_file.index == 0:
         # DEM is selected
         vis_exist_ok = False
@@ -297,6 +300,7 @@ def on_button_clicked(b):
     else:
         save_vis = False
 
+    # Save values into input object  # TODO: have a dict that is updated with every event!
     my_input = ADAFInput()
     my_input.update(
         dem_path=txt_input_file.value,
@@ -314,8 +318,11 @@ def on_button_clicked(b):
 
     # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
     final_adaf_output = main_routine(my_input)
+
     with output:
         display(final_adaf_output)
+
+    button_run_adaf.disabled = False
 
 
 button_run_adaf.on_click(on_button_clicked)
