@@ -51,10 +51,7 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths
         predicts_dir = Path(predicts_dir)
         file_list = list(predicts_dir.glob(f"*.txt"))
 
-        for file in file_list:
-            # Set path to individual PREDICTIONS FILE
-            file_path = path_to_predictions / file
-
+        for file_path in file_list:
             # Only read files that are not empty
             if not os.stat(file_path).st_size == 0:
                 # Read predictions from TXT file
@@ -77,7 +74,7 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths
                 data = data[data['score'] > threshold]
                 # Add paths to ML results
                 if keep_ml_paths:
-                    data["prediction_path"] = str(Path().joinpath(*file.parts[-3:]))
+                    data["prediction_path"] = str(Path().joinpath(*file_path.parts[-3:]))
                 # Don't append if there are no predictions left after filtering
                 if data.shape[0] > 0:
                     appended_data.append(data)
