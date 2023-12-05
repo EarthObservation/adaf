@@ -81,14 +81,31 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths
 
     if appended_data:
         # We have at least one detection
-        appended_data = gpd.GeoDataFrame(pd.concat(appended_data, ignore_index=True), crs=crs)
+        gdf = gpd.GeoDataFrame(pd.concat(appended_data, ignore_index=True), crs=crs)
 
         # If same object from two different tiles overlap, join them into one
-        # TODO: Solve this differently (avg, max-min)
+        gdf["unique_i"] = gdf.index
+        to_concat = []
+        for label, _ in predictions_dirs_dict.items():
+            gdf_1 = gdf[gdf["label"] == label]
+            intersection_gdf = gdf_1.overlay(gdf_1, how="intersection", keep_geom_type=True)
+            intersection_gdf = intersection_gdf.loc[intersection_gdf.unique_i_1 != intersection_gdf.unique_i_2]
+            # The features to dissolve are the intersecting ones, excluding the self-intersections
+            to_dissolve_gdf = gdf_1.loc[
+                gdf_1.unique_i.isin(intersection_gdf.unique_i_1) | gdf_1.unique_i.isin(intersection_gdf.unique_i_2)
+                ]
+            to_dissolve_gdf_2 = to_dissolve_gdf.dissolve(by="label", aggfunc={"score": "mean"}).explode(
+                index_parts=False).reset_index()
+            # Other features should not be dissolved
+            no_dissolve_gdf = gdf_1.loc[~gdf_1.index.isin(to_dissolve_gdf.index)].drop(columns=["unique_i"])
+            # Compile
+            result_gdf = pd.concat([to_dissolve_gdf_2, no_dissolve_gdf]).reset_index(drop=True)
+            to_concat.append(result_gdf)
+        final_gdf = gpd.GeoDataFrame(pd.concat(to_concat).reset_index(drop=True), crs=gdf.crs)
         # appended_data = appended_data.dissolve(by="label").explode(index_parts=False).reset_index(drop=False)
 
         # Export file
-        appended_data.to_file(str(output_path), driver="GPKG")
+        final_gdf.to_file(str(output_path), driver="GPKG")
     else:
         output_path = ""
 
@@ -166,22 +183,39 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5,
 
     if gdf_out:
         # We have at least one detection
-        gdf_out = gpd.GeoDataFrame(pd.concat(gdf_out, ignore_index=True), crs=crs)
+        gdf = gpd.GeoDataFrame(pd.concat(gdf_out, ignore_index=True), crs=crs)
 
         # If same object from two different tiles overlap, join them into one
-        # TODO: Solve this differently (avg, max-min)
+        gdf["unique_i"] = gdf.index
+        to_concat = []
+        for label, _ in predictions_dirs_dict.items():
+            gdf_1 = gdf[gdf["label"] == label]
+            intersection_gdf = gdf_1.overlay(gdf_1, how="intersection", keep_geom_type=True)
+            intersection_gdf = intersection_gdf.loc[intersection_gdf.unique_i_1 != intersection_gdf.unique_i_2]
+            # The features to dissolve are the intersecting ones, excluding the self-intersections
+            to_dissolve_gdf = gdf_1.loc[
+                gdf_1.unique_i.isin(intersection_gdf.unique_i_1) | gdf_1.unique_i.isin(intersection_gdf.unique_i_2)
+                ]
+            to_dissolve_gdf_2 = to_dissolve_gdf.dissolve(by="label", aggfunc={"score": "mean"}).explode(
+                index_parts=False).reset_index()
+            # Other features should not be dissolved
+            no_dissolve_gdf = gdf_1.loc[~gdf_1.index.isin(to_dissolve_gdf.index)].drop(columns=["unique_i"])
+            # Compile
+            result_gdf = pd.concat([to_dissolve_gdf_2, no_dissolve_gdf]).reset_index(drop=True)
+            to_concat.append(result_gdf)
+        final_gdf = gpd.GeoDataFrame(pd.concat(to_concat).reset_index(drop=True), crs=gdf.crs)
         # gdf_out = gdf_out.dissolve(by='label').explode(index_parts=False).reset_index(drop=False)
 
         # Post-processing
         if roundness:
-            gdf_out["roundness"] = 4 * np.pi * gdf_out.geometry.area / (gdf_out.geometry.convex_hull.length ** 2)
-            gdf_out = gdf_out[gdf_out["roundness"] > roundness]
+            gdf["roundness"] = 4 * np.pi * gdf.geometry.area / (gdf.geometry.convex_hull.length ** 2)
+            gdf = gdf[gdf["roundness"] > roundness]
         if min_area:
-            gdf_out["area"] = gdf_out.geometry.area
-            gdf_out = gdf_out[gdf_out["area"] > min_area]
+            gdf["area"] = gdf.geometry.area
+            gdf = gdf[gdf["area"] > min_area]
 
         # Export file
-        gdf_out.to_file(output_path.as_posix(), driver="GPKG")
+        gdf.to_file(output_path.as_posix(), driver="GPKG")
     else:
         output_path = ""
 
