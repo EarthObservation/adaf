@@ -1,13 +1,55 @@
 import ipywidgets as widgets
 from IPython.display import display
+from pathlib import Path
 from adaf_inference import main_routine, batch_routine
 from adaf_utils import ADAFInput
-from pathlib import Path
+import traitlets
+from tkinter import Tk, filedialog
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ INPUT FILES ~~~~~~~~~~~~~~~~~~~~~~~~
-# Display full text in the description of the widget
-style = {'description_width': 'initial'}
+class SelectFilesButton(widgets.Button):
+    """A file widget that leverages tkinter.filedialog."""
+
+    def __init__(self):
+        super(SelectFilesButton, self).__init__()
+        # Add the selected_files trait
+        self.add_traits(files=traitlets.traitlets.List())
+        # Create the button.
+        self.description = "Select file"
+        self.icon = "square-o"
+        self.style.button_color = None
+        # Set on click behavior.
+        self.on_click(self.select_files)
+
+    @staticmethod
+    def select_files(b):
+        """Generate instance of tkinter.filedialog.
+
+        Parameters
+        ----------
+        b : obj:
+            An instance of ipywidgets.widgets.Button
+        """
+        # Create Tk root
+        root = Tk()
+        # Hide the main window
+        root.withdraw()
+        # Raise the root to the top of all windows.
+        root.call('wm', 'attributes', '.', '-topmost', True)
+        # List of selected files will be set to b.value
+        b.files = filedialog.askopenfilename(
+            title="Select input files",
+            filetypes=[("GeoTIF", "*.tif;*.tiff"), ("VRT", "*.vrt")],
+            multiple=True
+        )
+
+        n_files = len(b.files)
+        if n_files > 0 and any(element != "" for element in b.files):
+            b.description = f"{n_files} File selected" if n_files == 1 else f"{n_files} Files selected"
+            b.icon = "check-square-o"
+            b.style.button_color = "lightgreen"
+
 
 # There are 2 options, switching between them will enable either DEM or Visualizations text_box
 rb_input_file_options = [
@@ -36,9 +78,11 @@ txt_input_file = widgets.Text(
     description=txt_input_file_descriptions[0],
     placeholder=txt_input_file_placeholders[0],
     layout=widgets.Layout(width='65%'),
-    style=style,
+    style={'description_width': 'initial'},
     disabled=False
 )
+
+test_upload = SelectFilesButton()
 
 chk_save_vis = widgets.Checkbox(
     value=True,
@@ -100,7 +144,7 @@ rb_semseg_or_objdet = widgets.RadioButtons(
 
 # Checkboxes for classes
 class_barrow = widgets.Checkbox(
-    value=True,
+    value=False,
     description='Barrow',
     disabled=False,
     indent=False,
@@ -108,7 +152,7 @@ class_barrow = widgets.Checkbox(
 )
 
 class_ringfort = widgets.Checkbox(
-    value=True,
+    value=False,
     description='Ringfort',
     disabled=False,
     indent=False,
@@ -116,7 +160,7 @@ class_ringfort = widgets.Checkbox(
 )
 
 class_enclosure = widgets.Checkbox(
-    value=True,
+    value=False,
     description='Enclosure',
     disabled=False,
     indent=False,
@@ -124,7 +168,7 @@ class_enclosure = widgets.Checkbox(
 )
 
 class_all_archaeology = widgets.Checkbox(
-    value=False,
+    value=True,
     description='All archaeology',
     disabled=False,
     indent=False,
@@ -139,8 +183,8 @@ def img_widget(path):
         img_wid = widgets.Image(
             value=image,
             format='jpg',
-            width=80,
-            height=80
+            width=100,
+            height=100
         )
 
     return img_wid
@@ -163,10 +207,46 @@ rb_ml_switch = widgets.RadioButtons(
 txt_custom_model = widgets.Text(
     description='Path to custom ML model [*.tar]:',
     placeholder="model_folder/saved_model.tar",
-    style=style,
+    style={'description_width': 'initial'},
     layout=widgets.Layout(width='65%'),
     disabled=True
 )
+
+# --------------------------------------------------------
+# The classes subgroup
+cl = widgets.Label("Select classes for inference:")
+
+# classes_box = widgets.HBox([class_barrow, class_ringfort, class_enclosure, class_all_archaeology])
+classes_box = widgets.GridBox(
+    children=[
+        class_all_archaeology, class_barrow, class_ringfort, class_enclosure,
+        widgets.Label(), img_b, img_r, img_e
+    ],
+    layout=widgets.Layout(
+        width='80%',
+        grid_template_columns='20% 20% 20% 20%',
+        grid_template_rows='30px auto',
+        grid_gap='5px'
+    )
+)
+
+# Stack ADAF on top of Custom
+adaf_box = widgets.VBox([
+    cl,
+    classes_box,
+], layout=widgets.Layout(width='100%'))
+# --------------------------------------------------------
+
+# --------------------------------------------------------
+custom_box = txt_custom_model
+# --------------------------------------------------------
+
+stack = widgets.Stack([adaf_box, custom_box], selected_index=0)
+
+# Dropdown for ADAF vs CUSTOM
+dropdown = widgets.Dropdown(options=['ADAF model', 'Custom model'])
+widgets.jslink((dropdown, 'index'), (stack, 'selected_index'))
+
 
 debug_view = widgets.Output(layout={'border': '1px solid black'})
 
@@ -247,14 +327,14 @@ fs_roundness = widgets.FloatSlider(
     continuous_update=False,
     orientation='horizontal',
     readout=True,
-    readout_format='.2f',
-
+    readout_format='.2f'
 )
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ BUTTON OF DOOM (click to run the app) ~~~~~~~~~~~~~~~~~~~~~~~~
 button_run_adaf = widgets.Button(
     description="Run ADAF",
-    layout={'width': '65%', 'border': '1px solid black'}  # widgets.Layout(width='98%'), 'border': '1px solid black'
+    layout={'width': '65%', 'border': '1px solid black'},  # widgets.Layout(width='98%'), 'border': '1px solid black'
+    tooltip='Description'
 )
 
 # Define output Context manager
@@ -271,6 +351,8 @@ def on_button_clicked(b):
 
     model_path - hard coded based on the inp2.value (segmentation or object detection)
     """
+    with output:
+        display(dropdown.value)
 
     button_run_adaf.disabled = True
 
@@ -329,7 +411,7 @@ def on_button_clicked(b):
             save_vis=save_vis,
             ml_type=rb_semseg_or_objdet.value,
             labels=class_selection,
-            ml_model_rbt=rb_ml_switch.value,
+            ml_model_rbt=dropdown.value,
             custom_model_pth=txt_custom_model.value,
             save_ml_output=chk_save_predictions.value,
             roundness=fs_roundness.value,
@@ -351,6 +433,7 @@ def on_button_clicked(b):
     button_run_adaf.disabled = False
 
 
+# button_run_adaf.on_click(on_button_clicked(abc=test_upload))
 button_run_adaf.on_click(on_button_clicked)
 
 
@@ -366,19 +449,6 @@ def select_class(chk_widget):
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ DISPLAYING WIDGETS ~~~~~~~~~~~~~~~~~~~~~~~~
-# The classes sub-group
-cl = widgets.Label("Select classes for inference:")
-
-# classes_box = widgets.HBox([class_barrow, class_ringfort, class_enclosure, class_all_archaeology])
-classes_box = widgets.GridBox(
-    children=[class_barrow, class_ringfort, class_enclosure, class_all_archaeology, img_b, img_r, img_e],
-    layout=widgets.Layout(
-        width='80%',
-        grid_template_columns='20% 20% 20% 20%',
-        grid_template_rows='30px auto',
-        grid_gap='1px'
-    )
-)
 
 post_proc_box = widgets.GridBox(
     children=[widgets.HTML(value='Select min area [m<sup>2</sup>]:'), fs_area,
@@ -386,29 +456,54 @@ post_proc_box = widgets.GridBox(
     layout=widgets.Layout(
         width='60%',
         grid_template_columns='30% 20%',
-        grid_template_rows='30px auto',
-        grid_gap='1px'
+        grid_template_rows='auto auto',
+        grid_gap='1px',
+        # margin='0 0 0 20px'
     )
 )
 
-ml_methods_row = widgets.HBox([rb_semseg_or_objdet, rb_ml_switch])
+# This controls the overall display elements -- padding or margin = [top/right/bottom/left]
+box_layout = widgets.Layout(
+    border='solid 1px grey',
+    padding='0 5px 5px 5px'
+    # display='flex',
+    # flex_flow='column'
+    # align_items='stretch'
+)
 
-# This controls the overall display elements
 display(
-    widgets.HTML(value=f"<b>Input data options:</b>"),
-    widgets.HBox([rb_input_file, chk_batch_process]),
-    txt_input_file,
-    chk_save_vis,
-    widgets.HTML(value=f"<b>ML options:</b>"),
-    widgets.VBox([
-        ml_methods_row,
-        cl,
-        classes_box,
-        txt_custom_model,
-        widgets.HTML(value=f"<b>Post-processing options:</b>"),
-        post_proc_box,
-        chk_save_predictions,
-        button_run_adaf
-    ]),
-    output
+    widgets.VBox(
+        [
+            widgets.VBox([
+                widgets.HTML(value=f"<b>Input data options:</b>"),
+                widgets.VBox(
+                    [
+                        widgets.HBox([rb_input_file, chk_batch_process]),
+                        test_upload,
+                        txt_input_file,
+                        chk_save_vis
+                    ],
+                    layout=box_layout
+                ),
+            ]),
+            widgets.VBox([
+                widgets.HTML(value=f"<b>ML options:</b>"),
+                widgets.VBox(
+                    [
+                        rb_semseg_or_objdet,
+                        dropdown,
+                        stack
+                    ],
+                    layout=box_layout
+                ),
+            ]),
+            widgets.VBox([
+                widgets.HTML(value=f"<b>Post-processing options:</b>"),
+                widgets.VBox([post_proc_box, chk_save_predictions], layout=box_layout)
+            ]),
+            button_run_adaf,
+            output
+        ],
+        layout=widgets.Layout(grid_gap='5px')
+    ),
 )
