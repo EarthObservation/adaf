@@ -359,17 +359,16 @@ class Logger:
 
 class ADAFInput:
     def __init__(self):
-        self.dem_path = None
-        self.batch_processing = None
+        self.input_file_list = None
         self.vis_exist_ok = None
         self.save_vis = None
         self.ml_type = None
         self.labels = None
-        self.ml_model_rbt = None
+        self.ml_model_custom = None
         self.custom_model_pth = None
-        self.save_ml_output = None
         self.roundness = None
         self.min_area = None
+        self.save_ml_output = None
 
     # def __getattr__(self, attr):
     #     category, key, value = attr.split('.')
@@ -385,9 +384,3 @@ class ADAFInput:
                 # print(f"{key} updated to {value}")
             else:
                 print(f"Invalid parameter: {key}")
-
-    # TODO: Do I need to run some checks?
-    def check_data(self):
-        """ Check Attributes """
-        if self.dem_path == "percent":
-            self.dem_path = "perc"

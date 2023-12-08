@@ -466,7 +466,7 @@ def run_aitlas_segmentation(labels, images_dir):
 
 
 def main_routine(inp):
-    dem_path = Path(inp.dem_path)
+    dem_path = Path(inp.input_file_list)
 
     # Create unique name for results
     time_started = localtime()
@@ -523,7 +523,7 @@ def main_routine(inp):
     vis_path = Path(vis_path)
 
     # --- INFERENCE ---
-    logger.log_inference_inputs(inp.ml_type, inp.ml_model_rbt, inp.labels)
+    logger.log_inference_inputs(inp.ml_type, inp.ml_model_custom, inp.labels)
     # For logger
     save_raw = []
     t2 = time.time()
@@ -594,12 +594,14 @@ def main_routine(inp):
 
 
 def batch_routine(inp):
-    print("Started BATCH PROCESSING!")
+    batch_list = inp.input_file_list
 
-    # Parse input file list
-    batch_list_pth = Path(inp.dem_path)
-    with batch_list_pth.open(mode="r", encoding="utf-8") as md_file:
-        batch_list = md_file.read().splitlines()
+    if len(batch_list) == 1:
+        print("Started SINGLE PROCESSING!")
+    elif len(batch_list) > 1:
+        print("Started BATCH PROCESSING!")
+    else:
+        print("NO FILES SELECTED!")
 
     for file in batch_list:
         print(" >>> ", file)
@@ -607,4 +609,4 @@ def batch_routine(inp):
 
         main_routine(inp)
 
-    return "FINISHED BATCH PROCESSING"
+    return "ADAF FINISHED PROCESSING"

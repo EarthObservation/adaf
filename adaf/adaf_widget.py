@@ -1,7 +1,7 @@
 import ipywidgets as widgets
 from IPython.display import display
 from pathlib import Path
-from adaf_inference import main_routine, batch_routine
+from adaf_inference import batch_routine
 from adaf_utils import ADAFInput
 import traitlets
 from tkinter import Tk, filedialog
@@ -17,7 +17,6 @@ class SelectFilesButton(widgets.Button):
         self.add_traits(files=traitlets.traitlets.List())
         # Create the button.
         self.description = "Select file"
-        self.icon = "square-o"
         self.style.button_color = None
         # Set on click behavior.
         self.on_click(self.select_files)
@@ -47,7 +46,6 @@ class SelectFilesButton(widgets.Button):
         n_files = len(b.files)
         if n_files > 0 and any(element != "" for element in b.files):
             b.description = f"{n_files} File selected" if n_files == 1 else f"{n_files} Files selected"
-            b.icon = "check-square-o"
             b.style.button_color = "lightgreen"
 
 
@@ -55,14 +53,6 @@ class SelectFilesButton(widgets.Button):
 rb_input_file_options = [
     'DEM (*.tif / *.vrt)',
     'Visualization (*.tif / *.vrt)'
-]
-txt_input_file_placeholders = [
-    "<my_data_folder/my_DEM_file.tif>",
-    "<my_data_folder/my_visualization_file.tif>"
-]
-txt_input_file_descriptions = [
-    'DEM path:',
-    'Visualization path:'
 ]
 
 # The main radio button options (se the list of available options above)
@@ -73,56 +63,19 @@ rb_input_file = widgets.RadioButtons(
     disabled=False
 )
 
-# Textbox for PATH to input file
-txt_input_file = widgets.Text(
-    description=txt_input_file_descriptions[0],
-    placeholder=txt_input_file_placeholders[0],
-    layout=widgets.Layout(width='65%'),
-    style={'description_width': 'initial'},
-    disabled=False
-)
-
-test_upload = SelectFilesButton()
+# Button - opens dialog window (select file/s)
+b_file_select = SelectFilesButton()
 
 chk_save_vis = widgets.Checkbox(
-    value=True,
-    description='Save visualizations',
-    disabled=False,
-    indent=False
-)
-
-chk_batch_process = widgets.Checkbox(
     value=False,
-    description='Batch processing',
+    description='Save visualizations',
     disabled=False,
     indent=False
 )
 
 
 # Radio buttons handler (what happens if radio button is changed)
-# # DEBUGGING
-# debug_view = widgets.Output(layout={'border': '1px solid black'})
-# @debug_view.capture(clear_output=True)
 def input_file_handler(value):
-    # # DEBUGGING
-    # print("RB:", rb_input_file.index)
-    # print("CHK:", chk_batch_process.value)
-
-    # Clear any text that was entered by user
-    txt_input_file.value = ""
-
-    # 0 for DEM, 1 for VIS
-    rb_idx = rb_input_file.index
-
-    if chk_batch_process.value:
-        # Batch processing is enabled, change placeholder to TXT
-        txt_input_file.description = txt_input_file_descriptions[rb_idx]
-        txt_input_file.placeholder = "<list of paths in TXT file!>"
-    else:
-        # Select DEM or VIS based on RB selection
-        txt_input_file.description = txt_input_file_descriptions[rb_idx]
-        txt_input_file.placeholder = txt_input_file_placeholders[rb_idx]
-
     if rb_input_file.index == 0:
         chk_save_vis.disabled = False
     else:
@@ -131,7 +84,6 @@ def input_file_handler(value):
 
 # When radio button trait changes, call the what_traits_radio function
 rb_input_file.observe(input_file_handler)
-chk_batch_process.observe(input_file_handler)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ ML SETTINGS ~~~~~~~~~~~~~~~~~~~~~~~~
 rb_semseg_or_objdet = widgets.RadioButtons(
@@ -244,7 +196,11 @@ custom_box = txt_custom_model
 stack = widgets.Stack([adaf_box, custom_box], selected_index=0)
 
 # Dropdown for ADAF vs CUSTOM
-dropdown = widgets.Dropdown(options=['ADAF model', 'Custom model'])
+dropdown = widgets.Dropdown(
+    options=['ADAF model', 'Custom model'],
+    style={'description_width': 'initial'},
+    description='Select model:'
+)
 widgets.jslink((dropdown, 'index'), (stack, 'selected_index'))
 
 
@@ -356,15 +312,6 @@ def on_button_clicked(b):
 
     button_run_adaf.disabled = True
 
-    # Check if paths are correct
-    dem_path = Path(txt_input_file.value)
-    if dem_path.is_file():
-        dem_file_ok = True
-    else:
-        with output:
-            display("The specified DEM file doesn't exist!")
-        dem_file_ok = False
-
     # Check if paths are correct for custom model
     custom_model_pth = Path(txt_custom_model.value)
     if rb_ml_switch.index == 0:
@@ -376,7 +323,7 @@ def on_button_clicked(b):
             display("The specified Custom Model file doesn't exist!")
         custom_tar_ok = False
 
-    run_app = dem_file_ok and custom_tar_ok
+    run_app = custom_tar_ok
 
     if run_app:
         # Prepare input parameter for processing visualization
@@ -396,7 +343,7 @@ def on_button_clicked(b):
         ]
         class_selection = [select_class(a) for a in class_selection if a.value]
 
-        # Save visualizations
+        # Save visualizations (Only available if DEM is selected)
         if not vis_exist_ok and chk_save_vis.value:
             save_vis = True
         else:
@@ -405,27 +352,25 @@ def on_button_clicked(b):
         # Save values into input object  # TODO: have a dict that is updated with every event!
         my_input = ADAFInput()
         my_input.update(
-            dem_path=txt_input_file.value,
-            batch_processing=chk_batch_process.value,
+            input_file_list=b_file_select.files,  # Input is list of paths
             vis_exist_ok=vis_exist_ok,
             save_vis=save_vis,
             ml_type=rb_semseg_or_objdet.value,
             labels=class_selection,
-            ml_model_rbt=dropdown.value,
+            ml_model_custom=dropdown.value,
             custom_model_pth=txt_custom_model.value,
-            save_ml_output=chk_save_predictions.value,
             roundness=fs_roundness.value,
-            min_area=fs_area.value
+            min_area=fs_area.value,
+            save_ml_output=chk_save_predictions.value
         )
 
         with output:
             display("Inputs check complete.")
             display("RUNNING ADAF!")
         # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
-        if chk_batch_process.value:
-            final_adaf_output = batch_routine(my_input)
-        else:
-            final_adaf_output = main_routine(my_input)
+
+        # RUN ACTUAL MAIN ROUTINE
+        final_adaf_output = batch_routine(my_input)
 
         with output:
             display(final_adaf_output)
@@ -465,7 +410,8 @@ post_proc_box = widgets.GridBox(
 # This controls the overall display elements -- padding or margin = [top/right/bottom/left]
 box_layout = widgets.Layout(
     border='solid 1px grey',
-    padding='0 5px 5px 5px'
+    padding='0 5px 5px 5px',
+    grid_gap='10px'
     # display='flex',
     # flex_flow='column'
     # align_items='stretch'
@@ -478,9 +424,8 @@ display(
                 widgets.HTML(value=f"<b>Input data options:</b>"),
                 widgets.VBox(
                     [
-                        widgets.HBox([rb_input_file, chk_batch_process]),
-                        test_upload,
-                        txt_input_file,
+                        rb_input_file,
+                        b_file_select,
                         chk_save_vis
                     ],
                     layout=box_layout
