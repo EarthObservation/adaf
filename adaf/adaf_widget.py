@@ -444,7 +444,13 @@ display(
             ]),
             widgets.VBox([
                 widgets.HTML(value=f"<b>Post-processing options:</b>"),
-                widgets.VBox([post_proc_box, chk_save_predictions], layout=box_layout)
+                widgets.VBox(
+                    [
+                        post_proc_box,
+                        chk_save_predictions
+                    ],
+                    layout=box_layout
+                )
             ]),
             button_run_adaf,
             output

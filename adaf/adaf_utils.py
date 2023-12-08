@@ -370,6 +370,8 @@ class ADAFInput:
         self.min_area = None
         self.save_ml_output = None
 
+        self.dem_path = None
+
     # def __getattr__(self, attr):
     #     category, key, value = attr.split('.')
     #     if category in ("vis", "inference") and key in self.__dict__[category]:

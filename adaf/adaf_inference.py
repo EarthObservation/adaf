@@ -466,7 +466,7 @@ def run_aitlas_segmentation(labels, images_dir):
 
 
 def main_routine(inp):
-    dem_path = Path(inp.input_file_list)
+    dem_path = Path(inp.dem_path)
 
     # Create unique name for results
     time_started = localtime()
