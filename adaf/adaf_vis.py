@@ -11,6 +11,7 @@ import os
 import time
 from math import ceil
 from pathlib import Path
+import logging
 
 import numpy as np
 import rasterio
@@ -124,7 +125,7 @@ def tiled_processing(
     # # DEBUG: RUN SINGLE INSTANCE
     # one_instance = input_process_list[13]
     # res = compute_save_low_levels(*one_instance)
-    # print(res)
+    # logging.debug(res)
 
     # multiprocessing
     skipped_tiles = []
@@ -134,10 +135,10 @@ def tiled_processing(
             pool_out = result.get()
             # Check if tile was all NaN's (remove it from REFGRID!)
             if pool_out[0] == 1:
-                print("Skipped (tile_ID:", pool_out[1], ");", pool_out[2])
+                logging.debug("Skipped (tile_ID:", pool_out[1], ");", pool_out[2])
                 skipped_tiles.append(pool_out[1])
             else:
-                print("tile_ID:", pool_out[1], ";", pool_out[2])
+                logging.debug("tile_ID:", pool_out[1], ";", pool_out[2])
 
     # # Remove tiles from REFGRID if any (that was the case in Noise mapping)
     # if skipped_tiles:
@@ -153,10 +154,10 @@ def tiled_processing(
     ds_dir = low_levels_dir / 'slrm'
     vrt_name = Path(input_vrt_path).stem + "_" + Path(ds_dir).name + ".vrt"
     out_path = build_vrt(ds_dir, vrt_name)
-    print("  - Created:", out_path)
+    logging.debug("  - Created:", out_path)
 
     t1 = time.time() - t0
-    print(f"Done with computing low-level visualizations in {round(t1/60, ndigits=None)} min.")
+    logging.debug(f"Done with computing low-level visualizations in {round(t1/60, ndigits=None)} min.")
 
     return {"output_directory": ds_dir, "files_list": all_tiles_paths, "vrt_path": out_path}
 
@@ -363,7 +364,7 @@ def compute_save_low_levels(
             with rasterio.open(arr_save_path, "w", **out_profile) as dst:
                 dst.write(arr_out)
 
-    # print(dict_arrays)
+    # logging.debug(dict_arrays)
     # # Release memory from variables that we don't need anymore
     # vis_out = None
     # arr_out = None

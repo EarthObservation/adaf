@@ -1,5 +1,5 @@
 import glob
-import os
+import os, sys
 import shutil
 import time
 from pathlib import Path
@@ -21,6 +21,9 @@ from adaf_utils import (make_predictions_on_patches_object_detection,
                         build_vrt_from_list,
                         Logger)
 from adaf_vis import tiled_processing, image_tiling
+
+import logging
+logging.disable(logging.INFO)
 
 
 def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths=False):
@@ -264,7 +267,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
 
     # === STEP 3 ===
     # Run visualizations
-    print("Start RVT vis")
+    logging.debug("Start RVT vis")
     out_paths = tiled_processing(
         input_vrt_path=in_file.as_posix(),
         ext_list=tiles_extents,
@@ -321,7 +324,7 @@ def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
 
     # === STEP 3 ===
     # Run tiling
-    print("Start RVT vis")
+    logging.debug("Start RVT vis")
     out_paths = image_tiling(
         source_path=in_file.as_posix(),
         ext_list=tiles_extents,
@@ -361,9 +364,9 @@ def run_aitlas_object_detection(labels, images_dir):
     }
 
     if cuda.is_available():
-        print("> CUDA is available, running predictions on GPU!")
+        logging.debug("> CUDA is available, running predictions on GPU!")
     else:
-        print("> No CUDA detected, running predictions on CPU!")
+        logging.debug("> No CUDA detected, running predictions on CPU!")
 
     predictions_dirs = {}
     for label in labels:
@@ -384,7 +387,7 @@ def run_aitlas_object_detection(labels, images_dir):
         model_path = Path(__file__).resolve().parent / model_path
         # Load appropriate ADAF model
         model.load_model(model_path)
-        print("Model successfully loaded.")
+        logging.debug("Model successfully loaded.")
 
         preds_dir = make_predictions_on_patches_object_detection(
             model=model,
@@ -422,9 +425,9 @@ def run_aitlas_segmentation(labels, images_dir):
     }
 
     if cuda.is_available():
-        print("> CUDA is available, running predictions on GPU!")
+        logging.debug("> CUDA is available, running predictions on GPU!")
     else:
-        print("> No CUDA detected, running predictions on CPU!")
+        logging.debug("> No CUDA detected, running predictions on CPU!")
 
     predictions_dirs = {}
     for label in labels:
@@ -440,18 +443,18 @@ def run_aitlas_segmentation(labels, images_dir):
         model = HRNet(model_config)
         model.prepare()
 
-        print(label)
+        logging.debug(label)
 
         # Prepare path to the model
         model_path = models.get(label)
         # Path is relative to the Current script directory
         model_path = Path(__file__).resolve().parent / model_path
 
-        print(model_path)
+        logging.debug(model_path)
 
         # Load appropriate ADAF model
         model.load_model(model_path)
-        print("Model successfully loaded.")
+        logging.debug("Model successfully loaded.")
 
         # Run inference
         preds_dir = make_predictions_on_patches_segmentation(
@@ -528,14 +531,14 @@ def main_routine(inp):
     save_raw = []
     t2 = time.time()
     if inp.ml_type == "object detection":
-        print("Running object detection")
+        logging.debug("Running object detection")
         predictions_dict = run_aitlas_object_detection(inp.labels, vis_path)
 
         vector_path = object_detection_vectors(predictions_dict, keep_ml_paths=inp.save_ml_output)
         if vector_path != "":
-            print("Created vector file", vector_path)
+            logging.debug("Created vector file", vector_path)
         else:
-            print("No archaeology detected")
+            logging.debug("No archaeology detected")
 
         # Remove predictions files (bbox txt)
         if not inp.save_ml_output:
@@ -545,7 +548,7 @@ def main_routine(inp):
             save_raw = [a for _, a in predictions_dict.items()]
 
     elif inp.ml_type == "segmentation":
-        print("Running segmentation")
+        logging.debug("Running segmentation")
         predictions_dict = run_aitlas_segmentation(inp.labels, vis_path)
 
         vector_path = semantic_segmentation_vectors(
@@ -555,15 +558,15 @@ def main_routine(inp):
             min_area=inp.min_area
         )
         if vector_path != "":
-            print("Created vector file", vector_path)
+            logging.debug("Created vector file", vector_path)
         else:
-            print("No archaeology detected")
+            logging.debug("No archaeology detected")
 
         # Save predictions files (probability masks)
         if inp.save_ml_output:
             # Create VRT file for predictions
             for label, p_dir in predictions_dict.items():
-                print("Creating vrt for", label)
+                logging.debug("Creating vrt for", label)
                 tif_list = glob.glob((Path(p_dir) / f"*{label}*.tif").as_posix())
                 vrt_name = save_dir / (Path(p_dir).stem + ".vrt")
                 build_vrt_from_list(tif_list, vrt_name)
@@ -588,7 +591,7 @@ def main_routine(inp):
     t0 = time.time() - t0
     logger.log_total_time(t0)
 
-    print("\n--\nFINISHED!")
+    logging.debug("\n--\nFINISHED!")
 
     return vector_path
 
@@ -597,14 +600,14 @@ def batch_routine(inp):
     batch_list = inp.input_file_list
 
     if len(batch_list) == 1:
-        print("Started SINGLE PROCESSING!")
+        logging.debug("Started SINGLE PROCESSING!")
     elif len(batch_list) > 1:
-        print("Started BATCH PROCESSING!")
+        logging.debug("Started BATCH PROCESSING!")
     else:
-        print("NO FILES SELECTED!")
+        logging.debug("NO FILES SELECTED!")
 
     for file in batch_list:
-        print(" >>> ", file)
+        logging.debug(" >>> ", file)
         inp.update(dem_path=file)
 
         main_routine(inp)

@@ -1,10 +1,11 @@
 import ipywidgets as widgets
 from IPython.display import display
 from pathlib import Path
-from adaf_inference import batch_routine
+from adaf_inference import main_routine
 from adaf_utils import ADAFInput
 import traitlets
 from tkinter import Tk, filedialog
+from yaspin import yaspin
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ INPUT FILES ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -204,13 +205,7 @@ dropdown = widgets.Dropdown(
 widgets.jslink((dropdown, 'index'), (stack, 'selected_index'))
 
 
-debug_view = widgets.Output(layout={'border': '1px solid black'})
-
-
-@debug_view.capture(clear_output=True)
 def ml_method_handler(value):
-    print(value.new)
-
     # 0 for ADAF model, 1 for Custom model
     if value.new == 0:
         class_barrow.disabled = False
@@ -336,9 +331,7 @@ def on_button_clicked(b):
 
     model_path - hard coded based on the inp2.value (segmentation or object detection)
     """
-    with output:
-        display(dropdown.value)
-
+    output_widget.clear_output()
     button_run_adaf.disabled = True
 
     # Check if paths are correct for custom model
@@ -393,16 +386,30 @@ def on_button_clicked(b):
             save_ml_output=chk_save_predictions.value
         )
 
-        with output:
-            display("Inputs check complete.")
-            display("RUNNING ADAF!")
-        # def main_routine(dem_path, ml_type, model_path, tile_size_px, prob_threshold, nr_processes=1):
-
         # RUN ACTUAL MAIN ROUTINE
-        final_adaf_output = batch_routine(my_input)
+        # with output_widget:
+        #     with yaspin():
+        #         final_adaf_output = batch_routine(my_input)
 
-        with output:
-            display(final_adaf_output)
+        with output_widget:
+            with yaspin() as spin:
+                batch_list = b_file_select.files
+
+                if len(batch_list) == 1:
+                    spin.write("Started - single image processing")
+                elif len(batch_list) > 1:
+                    spin.write("Started - batch processing")
+                else:
+                    spin.write("NO FILES SELECTED!")
+
+                for file in batch_list:
+                    spin.write(f" >>> {file}")
+                    my_input.update(dem_path=file)
+
+                    adaf_output = main_routine(my_input)
+
+                # finalize
+                spin.ok("✔ Finished processing")
 
     button_run_adaf.disabled = False
 
@@ -491,6 +498,7 @@ display(
                     width='100%'
                 )
             ),
+            output_widget,
             output
         ],
         layout=widgets.Layout(grid_gap='5px', width="65%")

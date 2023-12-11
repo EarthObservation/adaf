@@ -2,6 +2,7 @@ import os
 import warnings
 from pathlib import Path
 from time import localtime, strftime
+import logging
 
 import numpy as np
 import rasterio
@@ -64,10 +65,10 @@ def make_predictions_on_patches_object_detection(model, label, patches_folder, p
         predictions_dir = Path(predictions_dir)
     predictions_dir.mkdir(parents=True, exist_ok=True)
 
-    print("Generating predictions:")
+    logging.debug("Generating predictions:")
     for file in os.listdir(patches_folder):
         if file.endswith(".tif"):
-            print(">>> ", file)
+            logging.debug(">>> ", file)
             image_path = os.path.join(patches_folder, file)
             image_filename = file
             make_predictions_on_single_patch_store_preds_single_class(
@@ -106,9 +107,9 @@ def make_predictions_on_patches_segmentation(model, label, patches_folder, predi
         predictions_dir = Path(predictions_dir)
     predictions_dir.mkdir(parents=True, exist_ok=True)
 
-    print("Generating predictions:")
+    logging.debug("Generating predictions:")
     for file in os.listdir(patches_folder):
-        print(">>> ", file)
+        logging.debug(">>> ", file)
         if file.endswith(".tif"):
             image_path = os.path.join(patches_folder, file)
             model.predict_masks_tiff_probs_binary(
@@ -383,6 +384,6 @@ class ADAFInput:
         for key, value in kwargs.items():
             if hasattr(self, key):
                 setattr(self, key, value)
-                # print(f"{key} updated to {value}")
+                # logging.debug(f"{key} updated to {value}")
             else:
-                print(f"Invalid parameter: {key}")
+                logging.debug(f"Invalid parameter: {key}")

@@ -2,6 +2,7 @@
 
 
 import os
+import logging
 
 import geopandas as gpd
 import numpy as np
@@ -77,7 +78,7 @@ def bounding_grid(raster_file, tile_size_pix, tag=False, grid_type="GDF", save_g
     elif grid_type == "extents":
         out_grid = grid_cells
     else:
-        print("Error: select either 'GDF' or 'extents'!")
+        logging.debug("Error: select either 'GDF' or 'extents'!")
         out_grid = None
 
     return out_grid
