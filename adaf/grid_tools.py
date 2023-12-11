@@ -1,19 +1,17 @@
 """Script containing tools for working with reference grid."""
 
 
-import os
 import logging
+import os
+from pathlib import Path
 
 import geopandas as gpd
 import numpy as np
 import pandas as pd
 import rasterio
-from osgeo import gdal
-from rasterio.crs import CRS
 from rasterio.features import shapes
 from shapely.geometry import box
 from shapely.geometry import shape
-from pathlib import Path
 
 
 def bounding_grid(raster_file, tile_size_pix, tag=False, grid_type="GDF", save_gdf=None):
@@ -118,11 +116,11 @@ def filter_by_outline(in_grid, outline_file, save_gpkg=False, save_path=None):
         outline = outline.dissolve()
 
     # Two options
-    # # a) without sindex
+    # # a without sindex
     # outline_filter = in_grid.intersects(outline.geometry[0])
     # out_grid = in_grid[outline_filter]
 
-    # b) Using sindex
+    # b Using sindex
     if not in_grid.has_sindex:
         _ = in_grid.sindex
     outline_filter = in_grid.sindex.query(outline.geometry[0], predicate="intersects")
@@ -136,7 +134,8 @@ def filter_by_outline(in_grid, outline_file, save_gpkg=False, save_path=None):
     if save_gpkg:
         if save_path:
             # Because tuple can't be saved into file, split extents into separate columns
-            out_grid[["minx", "miny", "maxx", "maxy"]] = pd.DataFrame(out_grid['extents'].tolist(), index=out_grid.index)
+            out_grid[["minx", "miny", "maxx", "maxy"]] = pd.DataFrame(out_grid['extents'].tolist(),
+                                                                      index=out_grid.index)
             out_grid = out_grid.drop(columns=['extents'])
             out_grid.to_file(save_path, driver="GPKG")
         else:
@@ -180,32 +179,6 @@ def poly_from_valid(tif_pth, save_gpkg=None):
     return save_path
 
 
-def repair_crs(tif_path):
-    tif_out = tif_path.replace(".tif", "_TM75_woLZW.tif")
-    ds_out = gdal.Warp(
-        tif_out,
-        tif_path,
-        srcSRS=CRS.from_epsg(29903),
-        dstSRS=CRS.from_epsg(2157),
-        targetAlignedPixels=True,
-        resampleAlg=gdal.GRA_NearestNeighbour,
-        xRes=0.5, yRes=0.5,
-    )
-    ds_out.SetProjection("EPSG:29903")
-    ds_out = None
-
-    tif_out2 = tif_out.replace("_TM75_woLZW.tif", "_TM75.tif")
-    ds = gdal.Translate(
-        tif_out2, tif_out,
-        creationOptions=["COMPRESS=LZW", "TILED=YES", 'BLOCKXSIZE=128', 'BLOCKYSIZE=128']
-    )
-    ds = None
-
-    os.remove(tif_out)
-
-    return tif_out2
-
-
 def grid_from_tiles(tiles_dir, save_gpkg=False, vrt_pth=None):
     if save_gpkg and not vrt_pth:
         raise ValueError('You need to specify vrt_pth if you wish to save to file!')
@@ -224,8 +197,8 @@ def grid_from_tiles(tiles_dir, save_gpkg=False, vrt_pth=None):
 
     # FUNCTION THAT CREATES A SINGLE SQUARE POLYGON
     def tif2poly(tif_path):
-        with rasterio.open(tif_path) as src:
-            tile_bbox = src.bounds
+        with rasterio.open(tif_path) as rio:
+            tile_bbox = rio.bounds
 
         return box(tile_bbox.left, tile_bbox.bottom, tile_bbox.right, tile_bbox.top)
 

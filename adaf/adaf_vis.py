@@ -6,22 +6,22 @@ Creates visualisations from DEM and stores them as VRT.
 DEMO VERSION: At the moment it only creates NORMALISED SLRM visualisations (min/max -0.5/0.5)
 
 """
+import logging
 import multiprocessing as mp
 import os
 import time
 from math import ceil
 from pathlib import Path
-import logging
 
 import numpy as np
 import rasterio
-from rasterio.windows import from_bounds
-
 import rvt.blend
 import rvt.default
 import rvt.vis
-from adaf_utils import build_vrt
+from rasterio.windows import from_bounds
 from rvt.blend_func import normalize_image
+
+from adaf_utils import build_vrt
 
 
 def tiled_processing(

@@ -1,14 +1,16 @@
-import ipywidgets as widgets
-from IPython.display import display
 from pathlib import Path
-from adaf_inference import main_routine
-from adaf_utils import ADAFInput
-import traitlets
 from tkinter import Tk, filedialog
+
+import ipywidgets as widgets
+import traitlets
+from IPython.display import display
 from yaspin import yaspin
 
+from adaf_inference import main_routine
+from adaf_utils import ADAFInput
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~ INPUT FILES ~~~~~~~~~~~~~~~~~~~~~~~~
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~ INPUT FILES OPTIONS ~~~~~~~~~~~~~~~~~~~~~~~~
 class SelectFilesButton(widgets.Button):
     """A file widget that leverages tkinter.filedialog."""
 
@@ -406,7 +408,8 @@ def on_button_clicked(b):
                     spin.write(f" >>> {file}")
                     my_input.update(dem_path=file)
 
-                    adaf_output = main_routine(my_input)
+                    # adaf_output = main_routine(my_input)
+                    main_routine(my_input)
 
                 # finalize
                 spin.ok("✔ Finished processing")

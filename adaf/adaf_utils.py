@@ -1,8 +1,8 @@
+import logging
 import os
 import warnings
 from pathlib import Path
 from time import localtime, strftime
-import logging
 
 import numpy as np
 import rasterio

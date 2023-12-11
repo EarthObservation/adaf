@@ -1,5 +1,6 @@
 import glob
-import os, sys
+import logging
+import os
 import shutil
 import time
 from pathlib import Path
@@ -22,7 +23,6 @@ from adaf_utils import (make_predictions_on_patches_object_detection,
                         Logger)
 from adaf_vis import tiled_processing, image_tiling
 
-import logging
 logging.disable(logging.INFO)
 
 
