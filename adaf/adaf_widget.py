@@ -128,15 +128,15 @@ class_all_archaeology = widgets.Checkbox(
 )
 
 
-def img_widget(path):
+def img_widget(path, driver="jpg", size=100):
     # Open image for txtbox
     with open(path, "rb") as src:
         image = src.read()
         img_wid = widgets.Image(
             value=image,
-            format='jpg',
-            width=100,
-            height=100
+            format=driver,
+            width=size,
+            height=size
         )
 
     return img_wid
@@ -160,7 +160,7 @@ txt_custom_model = widgets.Text(
     description='Path to custom ML model [*.tar]:',
     placeholder="model_folder/saved_model.tar",
     style={'description_width': 'initial'},
-    layout=widgets.Layout(width='65%'),
+    layout=widgets.Layout(width='90%'),
     disabled=True
 )
 
@@ -175,7 +175,7 @@ classes_box = widgets.GridBox(
         widgets.Label(), img_b, img_r, img_e
     ],
     layout=widgets.Layout(
-        width='80%',
+        # width='80%',
         grid_template_columns='20% 20% 20% 20%',
         grid_template_rows='30px auto',
         grid_gap='5px'
@@ -261,21 +261,45 @@ rb_semseg_or_objdet.observe(chk_save_predictions_handler)
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ POST PROCESSING ~~~~~~~~~~~~~~~~~~~~~~~~
 
-fs_area = widgets.FloatSlider(
-    value=30,
+label_round = widgets.Label("Roundness examples:", style=dict(text_color='Grey'))
+img_round50 = img_widget("media/roundness_0.50.svg", driver="svg+xml", size=50)
+img_round95 = img_widget("media/roundness_0.95.svg", driver="svg+xml", size=50)
+lbl_round50 = widgets.Label("0.50", style=dict(text_color='Grey'))
+lbl_round90 = widgets.Label("0.95", style=dict(text_color='Grey'))
+
+roundness_box = widgets.GridBox(
+    children=[
+        label_round, lbl_round50, img_round50, lbl_round90, img_round95
+    ],
+    layout=widgets.Layout(
+        width='70%',
+        grid_template_columns='200px 10% auto 10% auto',
+        grid_template_rows='auto',
+        grid_gap='0px',
+        object_fit='contain',
+        align_items='center',
+        border='solid 1px LightGrey'
+        # border_left='solid 1px grey'# display='flex',
+    )
+)
+
+# roundness_box = widgets.HBox([label_round, lbl_round50, img_round50, lbl_round90, img_round95])
+
+fs_area = widgets.IntSlider(
+    value=40,
     min=0,
-    max=40,
-    step=1,
+    max=100,
+    step=5,
     disabled=False,
     continuous_update=False,
     orientation='horizontal',
     readout=True,
-    readout_format='.1f',
+    readout_format='d',
 
 )
 
 fs_roundness = widgets.FloatSlider(
-    value=0.75,
+    value=0.5,
     min=0,
     max=0.95,
     step=0.05,
@@ -286,10 +310,15 @@ fs_roundness = widgets.FloatSlider(
     readout_format='.2f'
 )
 
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~ PROGRESS BAR ~~~~~~~~~~~~~~~~~~~~~~~~
+# Create an Output widget
+output_widget = widgets.Output()
+
 # ~~~~~~~~~~~~~~~~~~~~~~~~ BUTTON OF DOOM (click to run the app) ~~~~~~~~~~~~~~~~~~~~~~~~
 button_run_adaf = widgets.Button(
     description="Run ADAF",
-    layout={'width': '65%', 'border': '1px solid black'},  # widgets.Layout(width='98%'), 'border': '1px solid black'
+    layout={'width': 'auto', 'border': '1px solid black'},
     tooltip='Description'
 )
 
@@ -399,7 +428,7 @@ post_proc_box = widgets.GridBox(
     children=[widgets.HTML(value='Select min area [m<sup>2</sup>]:'), fs_area,
               widgets.HTML(value='Select min roundness:'), fs_roundness],
     layout=widgets.Layout(
-        width='60%',
+        # width='60%',
         grid_template_columns='30% 20%',
         grid_template_rows='auto auto',
         grid_gap='1px',
@@ -447,14 +476,23 @@ display(
                 widgets.VBox(
                     [
                         post_proc_box,
-                        chk_save_predictions
+                        roundness_box,
+                        chk_save_predictions,
                     ],
                     layout=box_layout
                 )
             ]),
-            button_run_adaf,
+            widgets.Box(
+                [button_run_adaf],
+                layout=widgets.Layout(
+                    display='flex',
+                    flex_flow='column',
+                    align_items='stretch',
+                    width='100%'
+                )
+            ),
             output
         ],
-        layout=widgets.Layout(grid_gap='5px')
+        layout=widgets.Layout(grid_gap='5px', width="65%")
     ),
 )
