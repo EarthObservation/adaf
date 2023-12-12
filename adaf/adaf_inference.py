@@ -16,12 +16,14 @@ from rasterio.features import shapes
 from shapely.geometry import box, shape
 from torch import cuda
 
-import grid_tools as gt
-from adaf_utils import (make_predictions_on_patches_object_detection,
-                        make_predictions_on_patches_segmentation,
-                        build_vrt_from_list,
-                        Logger)
-from adaf_vis import tiled_processing, image_tiling
+import adaf.grid_tools as gt
+from adaf.adaf_utils import (
+    make_predictions_on_patches_object_detection,
+    make_predictions_on_patches_segmentation,
+    build_vrt_from_list,
+    Logger
+)
+from adaf.adaf_vis import tiled_processing, image_tiling
 
 logging.disable(logging.INFO)
 

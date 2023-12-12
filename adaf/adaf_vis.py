@@ -21,7 +21,7 @@ import rvt.vis
 from rasterio.windows import from_bounds
 from rvt.blend_func import normalize_image
 
-from adaf_utils import build_vrt
+from adaf.adaf_utils import build_vrt
 
 
 def tiled_processing(

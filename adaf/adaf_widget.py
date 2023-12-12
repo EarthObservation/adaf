@@ -6,8 +6,8 @@ import traitlets
 from IPython.display import display
 from yaspin import yaspin
 
-from adaf_inference import main_routine
-from adaf_utils import ADAFInput
+from adaf.adaf_inference import main_routine
+from adaf.adaf_utils import ADAFInput
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ INPUT FILES OPTIONS ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -145,9 +145,9 @@ def img_widget(path, driver="jpg", size=100):
     return img_wid
 
 
-img_b = img_widget("media/barrows.jpg")
-img_r = img_widget("media/ringfort.jpg")
-img_e = img_widget("media/enclosure.jpg")
+img_b = img_widget(Path(__file__).resolve().parent / "media/barrows.jpg")
+img_r = img_widget(Path(__file__).resolve().parent / "media/ringfort.jpg")
+img_e = img_widget(Path(__file__).resolve().parent / "media/enclosure.jpg")
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ Custom ML model ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -259,8 +259,8 @@ rb_semseg_or_objdet.observe(chk_save_predictions_handler)
 # ~~~~~~~~~~~~~~~~~~~~~~~~ POST PROCESSING ~~~~~~~~~~~~~~~~~~~~~~~~
 
 label_round = widgets.Label("Roundness examples:", style=dict(text_color='Grey'))
-img_round50 = img_widget("media/roundness_0.50.svg", driver="svg+xml", size=50)
-img_round95 = img_widget("media/roundness_0.95.svg", driver="svg+xml", size=50)
+img_round50 = img_widget(Path(__file__).resolve().parent / "media/roundness_0.50.svg", driver="svg+xml", size=50)
+img_round95 = img_widget(Path(__file__).resolve().parent / "media/roundness_0.95.svg", driver="svg+xml", size=50)
 lbl_round50 = widgets.Label("0.50", style=dict(text_color='Grey'))
 lbl_round90 = widgets.Label("0.95", style=dict(text_color='Grey'))
 
