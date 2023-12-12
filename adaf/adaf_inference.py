@@ -528,7 +528,7 @@ def main_routine(inp):
     vis_path = Path(vis_path)
 
     # --- INFERENCE ---
-    logger.log_inference_inputs(inp.ml_type, inp.ml_model_custom, inp.labels)
+    logger.log_inference_inputs(inp.ml_type, inp.labels, inp.ml_model_custom)
     # For logger
     save_raw = []
     t2 = time.time()

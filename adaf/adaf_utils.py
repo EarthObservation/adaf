@@ -276,7 +276,7 @@ class Logger:
 
         return log_entry
 
-    def log_inference_inputs(self, ml_method, ml_model, ml_labels):
+    def log_inference_inputs(self, ml_method, ml_labels, ml_model="ADAF"):
         """Creates a header for a new section in the log file"""
 
         if ml_method == "segmentation":
