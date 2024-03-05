@@ -21,9 +21,11 @@ from adaf.adaf_utils import (
     make_predictions_on_patches_object_detection,
     make_predictions_on_patches_segmentation,
     build_vrt_from_list,
-    Logger
+    Logger,
+    image_tiling
 )
-from adaf.adaf_vis import tiled_processing, image_tiling
+
+from adaf.adaf_vis import tiled_processing
 
 logging.disable(logging.INFO)
 
