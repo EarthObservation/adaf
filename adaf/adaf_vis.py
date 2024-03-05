@@ -132,7 +132,7 @@ def tiled_processing(
     #     ext_list.to_file(refg_pth, driver="GPKG")
 
     # Prepare list with all output tiles paths
-    all_tiles_paths = [pth[3].as_posix() for pth in input_process_list]
+    all_tiles_paths = [pth[2].as_posix() for pth in input_process_list]
 
     # Build VRTs
     # TODO: hardcoded for slrm, change if different vis will be available
