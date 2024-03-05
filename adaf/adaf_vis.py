@@ -25,19 +25,41 @@ from adaf.adaf_utils import build_vrt
 
 
 def tiled_processing(
-        input_vrt_path,
-        ext_list,
+        input_raster_path,
+        extents_list,
         nr_processes=7,
-        ll_dir=None
+        save_dir=None
 ):
+    """Tiled multiprocessing for RVT for larger rasters.
+
+    Parameters
+    ----------
+    input_raster_path : str or pathlib.Path()
+        Path to the source file, raster in GeoTIFF or VRT format.
+    extents_list : gpd.geodataframe.GeoDataFrame
+        List of extents in GeoDataFrame format. Each tile is a square polygon.
+    nr_processes : int
+        Number of processes for multiprocessing.
+    save_dir : str or pathlib.Path()
+        Path to directory to which results are saved.
+
+    Returns
+    -------
+    dict
+        Dictionary containing the following:
+        "output_directory" - path to the directory with results,
+        "files_list" - list of files (full file paths),
+        "vrt_path" - path to VRT file of the results,
+        "processing_time" - time in seconds.
+    """
     # Start timer
     t0 = time.time()
 
     # This is the main dataset folder (where DEM file is located)
-    output_dir_path = Path(input_vrt_path).parent
+    output_dir_path = Path(input_raster_path).parent
 
     # Get resolution of the dataset, because buffering is dependent on resolution!
-    res = get_resolution(input_vrt_path)
+    res = get_resolution(input_raster_path)
 
     # DEFAULTS (for low-level visualizations)
     # ================================================
@@ -47,24 +69,24 @@ def tiled_processing(
     default_1.slrm_rad_cell = ceil(10 / res) if res < 1 else 10
 
     # Prepare folder for saving results
-    if ll_dir:
-        low_levels_dir = ll_dir
-        low_levels_dir.mkdir(parents=True, exist_ok=True)
+    if save_dir:
+        low_level_dir = save_dir
+        low_level_dir.mkdir(parents=True, exist_ok=True)
     else:
         # If not specified, save results next to the input file
-        low_levels_dir = output_dir_path
+        low_level_dir = output_dir_path
 
     # Prepare for multiprocessing
     const_params = [
         default_1,           # const 1
-        input_vrt_path,      # const 3
-        low_levels_dir       # const 4
+        input_raster_path,      # const 3
+        low_level_dir       # const 4
     ]
 
     # Get basename of VRT file, required for building output name
     input_process_list = []
     # Extents are calculated HERE!
-    ext_list1 = ext_list[["minx", "miny", "maxx", "maxy"]].values.tolist()
+    ext_list1 = extents_list[["minx", "miny", "maxx", "maxy"]].values.tolist()
     for i, input_dem_extents in enumerate(ext_list1):
         # --> USE THIS IF YOU WANT TO ADD INDEX TO FILENAME
         # # tile_id = ext_list.tile_ID.iloc[i]
@@ -72,8 +94,8 @@ def tiled_processing(
         #
 
         # Prepare file name as left-bottom coordinates
-        left = ext_list.minx.iloc[i]
-        bottom = ext_list.miny.iloc[i]
+        left = extents_list.minx.iloc[i]
+        bottom = extents_list.miny.iloc[i]
         out_name = f"{left:.0f}_{bottom:.0f}_rvt.tif"
 
         # Append variable parameters to the list for multiprocessing
@@ -115,26 +137,51 @@ def tiled_processing(
     # Build VRTs
     # TODO: hardcoded for slrm, change if different vis will be available
     #  FILE NAMING IS DONE HERE
-    ds_dir = low_levels_dir / 'slrm'
-    vrt_name = Path(input_vrt_path).stem + "_" + Path(ds_dir).name + ".vrt"
-    out_path = build_vrt(ds_dir, vrt_name)
-    logging.debug("  - Created:", out_path)
+    ds_dir = low_level_dir / 'slrm'
+    vrt_name = Path(input_raster_path).stem + "_" + Path(ds_dir).name + ".vrt"
+    vrt_path = build_vrt(ds_dir, vrt_name)
+    logging.debug("  - Created:", vrt_path)
 
     t1 = time.time() - t0
     logging.debug(f"Done with computing low-level visualizations in {round(t1/60, ndigits=None)} min.")
 
-    return {"output_directory": ds_dir, "files_list": all_tiles_paths, "vrt_path": out_path, "processing_time": t1}
+    return {"output_directory": ds_dir, "files_list": all_tiles_paths, "vrt_path": vrt_path, "processing_time": t1}
 
 
 # Function which is multiprocessing
 def process_one_tile(
         default_1,
-        vrt_path,
-        low_levels_dir,
-        input_dem_extents,
-        dem_name,
+        source_raster_path,
+        main_save_dir,
+        tile_extents,
+        tile_name,
         tile_id
 ):
+    """Creates RVT visualization(s) for a single tile from a larger raster.
+
+    Note
+    ----
+    Currently, only the SLRM visualization is supported, however any other visualization from rvt_py can be added here.
+
+    Parameters
+    ----------
+    default_1 : rvt.default.DefaultValues()
+        An instance of RVT DefaultValues class, with parameters required for this visualization(s).
+    source_raster_path : str or pathlib.Path()
+        Path to the source raster (DEM) file. Can be GeoTIFF or VRT format.
+    main_save_dir : pathlib.Path()
+        Path to the main directory for saving results. There will be "visualization_slrm" folder created here.
+    tile_extents : list
+        A list of extents, each item is a list: ["minx", "miny", "maxx", "maxy"].
+    tile_name : str
+        A file name to be used for this tile in format <minx>_<miny>_rvt.tif"
+    tile_id : int
+        ID of tile.
+
+    Returns
+    -------
+        0 if successful, 1 if error (all NaNs encountered)
+    """
     # We only have SLRM, but potentially other visualizations can be added
     buffer_dict = {
         "slrm": default_1.slrm_rad_cell
@@ -145,10 +192,10 @@ def process_one_tile(
     buffer = buffer_dict[max_buff]
 
     # Read array into RVT dictionary format
-    dict_arrays = get_raster_vrt(vrt_path, input_dem_extents, buffer)
+    dict_arrays = get_tile_from_raster(source_raster_path, tile_extents, buffer)
 
     # Add default path
-    dict_arrays["default_path"] = dem_name
+    dict_arrays["default_path"] = tile_name
 
     # Change nodata value to np.nan, to avoid problems later
     dict_arrays["array"][dict_arrays["array"] == dict_arrays["no_data"]] = np.nan
@@ -157,7 +204,7 @@ def process_one_tile(
     # Then check, if output slice (w/o buffer) is all NaNs, then skip this tile if yes
     if (dict_arrays["array"][buffer:-buffer, buffer:-buffer] == np.nan).all():
         # If all NaNs encountered, output the tile ID
-        return 1, tile_id, f"Skipping, all NaNs in: {dem_name}"
+        return 1, tile_id, f"Skipping, all NaNs in: {tile_name}"
 
     # --- START VISUALIZATION WITH RVT ---
 
@@ -186,8 +233,9 @@ def process_one_tile(
                 vis_type: out_slrm
             }
             # Determine output name
+            # TODO: Here you can change the name of visualization folder
             vis_paths = {
-                vis_type: low_levels_dir / vis_type / default_1.get_slrm_file_name(dem_name)
+                vis_type: main_save_dir / vis_type / default_1.get_slrm_file_name(tile_name)
             }
         else:
             raise ValueError("Wrong vis_type in the visualization for loop")
@@ -214,18 +262,20 @@ def process_one_tile(
             with rasterio.open(arr_save_path, "w", **out_profile) as dst:
                 dst.write(arr_out)
 
-    return 0, tile_id, f"Finished processing: {dem_name}"
+    return 0, tile_id, f"Finished processing: {tile_name}"
 
 
-def get_raster_vrt(vrt_path, extents, buffer):
-    """
-    Extents have to be transformed into rasterio Window object, it is passed into the function as tuple.
+def get_tile_from_raster(raster_path, extents, buffer):
+    """The function reads the array for a single tile from the entire raster. It also extracts all relevant metadata
+    such as transform, resolution, crs, array size, nodata, etc.
+
+    Extents must be converted into a rasterio Window object, which is passed to the function as a tuple.
     (left, bottom, right, top)
 
     Parameters
     ----------
-    vrt_path : str
-        Path to raster file. Can be any rasterio readable format.
+    raster_path : str or pathlib.Path()
+        Path to the raster file. Can be any format readable by rasterio.
     extents : tuple
         Extents to be read (left, bottom, right, top).
     buffer : int
@@ -233,10 +283,10 @@ def get_raster_vrt(vrt_path, extents, buffer):
 
     Returns
     -------
-        A dictionary containing the raster array and all the required metadata.
-
+    dict
+        A dictionary containing the raster array and all required metadata.
     """
-    with rasterio.open(vrt_path) as vrt:
+    with rasterio.open(raster_path) as vrt:
         # Read VRT metadata
         vrt_res = vrt.res
         vrt_nodata = vrt.nodata

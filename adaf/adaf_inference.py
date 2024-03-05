@@ -273,10 +273,10 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     # Run visualizations
     logging.debug("Start RVT vis")
     out_paths = tiled_processing(
-        input_vrt_path=in_file.as_posix(),
-        ext_list=tiles_extents,
+        input_raster_path=in_file.as_posix(),
+        extents_list=tiles_extents,
         nr_processes=nr_processes,
-        ll_dir=Path(save_dir)
+        save_dir=Path(save_dir)
     )
 
     # Remove reference grid and valid data mask files
