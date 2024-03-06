@@ -91,7 +91,7 @@ def filter_by_outline(in_grid, outline_file, save_gpkg=False, save_path=None):
     ----------
     in_grid : gpd.geodataframe.GeoDataFrame, str
         Grid made of polygons in GeoDataFormat
-    outline_file : str
+    outline_file : str or gpd.GeoDataFrame()
         Path to the outline file (any format readable by GeoPandas).
     save_gpkg : bool, default False
         If true, grid is saved to disk.
@@ -131,12 +131,12 @@ def filter_by_outline(in_grid, outline_file, save_gpkg=False, save_path=None):
     out_grid = out_grid.rename(columns={'index': 'tile_ID'})
     out_grid["extents"] = out_grid.bounds.apply(lambda x: (x.minx, x.miny, x.maxx, x.maxy), axis=1)
 
+    # Because tuple can't be saved into file, split extents into separate columns
+    out_grid[["minx", "miny", "maxx", "maxy"]] = pd.DataFrame(out_grid['extents'].tolist(), index=out_grid.index)
+    out_grid = out_grid.drop(columns=['extents'])
+
     if save_gpkg:
         if save_path:
-            # Because tuple can't be saved into file, split extents into separate columns
-            out_grid[["minx", "miny", "maxx", "maxy"]] = pd.DataFrame(out_grid['extents'].tolist(),
-                                                                      index=out_grid.index)
-            out_grid = out_grid.drop(columns=['extents'])
             out_grid.to_file(save_path, driver="GPKG")
         else:
             raise ValueError("Specify save_path for the output file!")

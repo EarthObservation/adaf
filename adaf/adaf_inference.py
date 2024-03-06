@@ -253,29 +253,13 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     # Prepare paths
     in_file = Path(dem_path)
 
-    # === STEP 1 ===
     # We need polygon covering valid data
-    valid_data_outline, _ = gt.poly_from_valid(
-        in_file.as_posix(),
-        # save_gpkg=save_dir  # directory where *_validDataMask.gpkg will be stored
-    )
+    valid_data_outline, _ = gt.poly_from_valid(in_file.as_posix())
 
-    # === STEP 2 ===
     # Create reference grid, filter it and save it to disk
-    tiles_extents = gt.bounding_grid(
-        in_file.as_posix(),
-        tile_size,
-        tag=False
-    )
-    refgrid_name = in_file.as_posix()[:-4] + "_refgrid.gpkg"
-    tiles_extents = gt.filter_by_outline(
-        tiles_extents,
-        valid_data_outline,
-        save_gpkg=True,
-        save_path=refgrid_name
-    )
+    tiles_extents = gt.bounding_grid(in_file.as_posix(), tile_size, tag=False)
+    tiles_extents = gt.filter_by_outline(tiles_extents, valid_data_outline)
 
-    # === STEP 3 ===
     # Run visualizations
     logging.debug("Start RVT vis")
     out_paths = tiled_processing(
@@ -284,10 +268,6 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
         nr_processes=nr_processes,
         save_dir=Path(save_dir)
     )
-
-    # Remove reference grid and valid data mask files
-    # Path(valid_data_outline).unlink()
-    Path(refgrid_name).unlink()
 
     return out_paths
 
@@ -316,29 +296,13 @@ def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
     # Prepare paths
     in_file = Path(dem_path)
 
-    # === STEP 1 ===
     # We need polygon covering valid data
-    valid_data_outline, _ = gt.poly_from_valid(
-        in_file.as_posix(),
-        # save_gpkg=save_dir  # directory where *_validDataMask.gpkg will be stored
-    )
+    valid_data_outline, _ = gt.poly_from_valid(in_file.as_posix())
 
-    # === STEP 2 ===
-    # Create reference grid, filter it and save it to disk
-    tiles_extents = gt.bounding_grid(
-        in_file.as_posix(),
-        tile_size,
-        tag=False
-    )
-    refgrid_name = in_file.as_posix()[:-4] + "_refgrid.gpkg"
-    tiles_extents = gt.filter_by_outline(
-        tiles_extents,
-        valid_data_outline,
-        save_gpkg=True,
-        save_path=refgrid_name
-    )
+    # Create reference grid and filter it
+    tiles_extents = gt.bounding_grid(in_file.as_posix(), tile_size, tag=False)
+    tiles_extents = gt.filter_by_outline(tiles_extents, valid_data_outline)
 
-    # === STEP 3 ===
     # Run tiling
     logging.debug("Start RVT vis")
     out_paths = image_tiling(
@@ -347,11 +311,6 @@ def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
         nr_processes=nr_processes,
         save_dir=Path(save_dir)
     )
-
-    # === STEP 4 ===
-    # Remove reference grid and valid data mask files
-    # Path(valid_data_outline).unlink()
-    Path(refgrid_name).unlink()
 
     return out_paths
 
