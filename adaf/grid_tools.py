@@ -145,6 +145,24 @@ def filter_by_outline(in_grid, outline_file, save_gpkg=False, save_path=None):
 
 
 def poly_from_valid(tif_pth, save_gpkg=None):
+    """Returns a polygon (GeoDataFrame) covering the valid pixels. Valid pixels are all non-NaN pixels.
+
+    Note
+    ----
+    We need valid area polygon for removing all-NaN tiles from the reference grid.
+
+    Parameters
+    ----------
+    tif_pth : str or pathlib.Path()
+        Path to input raster (GeoTIFF or VRT).
+    save_gpkg : str
+        Directory where *_validDataMask.gpkg file will be saved. If left empty, the file will not be created.
+
+    Returns
+    -------
+    (gpd.GeoDataFrame, str)
+        The polygon in GeoDataFrame format and path to validDataMask file if it exists.
+    """
     # Read raster data
     with rasterio.open(tif_pth) as src:
         raster = src.read()
@@ -176,7 +194,7 @@ def poly_from_valid(tif_pth, save_gpkg=None):
     else:
         save_path = None
 
-    return save_path
+    return grid, save_path
 
 
 def grid_from_tiles(tiles_dir, save_gpkg=False, vrt_pth=None):

@@ -516,8 +516,8 @@ def image_tiling(
         A list of geographical extents of all the tiles in ["minx", "miny", "maxx", "maxy"] format.
     nr_processes : int
         Number of processes for multiprocessing.
-    save_dir : str
-        PAth to directory containing output files.
+    save_dir : pathlib.Path()
+        Path to directory containing output files.
 
     Returns
     -------

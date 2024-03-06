@@ -255,9 +255,9 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
 
     # === STEP 1 ===
     # We need polygon covering valid data
-    valid_data_outline = gt.poly_from_valid(
+    valid_data_outline, _ = gt.poly_from_valid(
         in_file.as_posix(),
-        save_gpkg=save_dir  # directory where *_validDataMask.gpkg will be stored
+        # save_gpkg=save_dir  # directory where *_validDataMask.gpkg will be stored
     )
 
     # === STEP 2 ===
@@ -286,7 +286,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     )
 
     # Remove reference grid and valid data mask files
-    Path(valid_data_outline).unlink()
+    # Path(valid_data_outline).unlink()
     Path(refgrid_name).unlink()
 
     return out_paths
@@ -318,9 +318,9 @@ def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
 
     # === STEP 1 ===
     # We need polygon covering valid data
-    valid_data_outline = gt.poly_from_valid(
+    valid_data_outline, _ = gt.poly_from_valid(
         in_file.as_posix(),
-        save_gpkg=save_dir  # directory where *_validDataMask.gpkg will be stored
+        # save_gpkg=save_dir  # directory where *_validDataMask.gpkg will be stored
     )
 
     # === STEP 2 ===
@@ -350,7 +350,7 @@ def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
 
     # === STEP 4 ===
     # Remove reference grid and valid data mask files
-    Path(valid_data_outline).unlink()
+    # Path(valid_data_outline).unlink()
     Path(refgrid_name).unlink()
 
     return out_paths
