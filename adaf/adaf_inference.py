@@ -234,15 +234,21 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
 
     Uses RVT (see adaf_vis.py).
 
-    dem_path:
-        Can be any raster file (GeoTIFF and VRT supported.)
-    tile_size:
-        In pixels
-    save_dir:
-        Save directory
-    nr_processes:
-        Number of processes for parallel computing
+    Parameters
+    ----------
+    dem_path : str or pathlib.Path()
+        Can be any raster file (GeoTIFF and VRT supported).
+    tile_size : int
+        In pixels.
+    save_dir : str
+        Save directory.
+    nr_processes : int
+        Number of processes for parallel computing.
 
+    Returns
+    -------
+    dict
+        A python dictionary containing results from tiling, such as paths and processing time.
     """
     # Prepare paths
     in_file = Path(dem_path)
@@ -287,19 +293,25 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
 
 
 def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
-    """Calculates visualisations from DEM and saves them into VRT (Geotiff) file.
+    """Calculates visualisations (by tile) from DEM and saves them into VRT (Geotiff) file.
 
     Uses RVT (see adaf_vis.py).
 
-    dem_path:
-        Can be any raster file (GeoTIFF and VRT supported.)
-    tile_size:
-        In pixels
-    save_dir:
-        Save directory
-    nr_processes:
-        Number of processes for parallel computing
+    Parameters
+    ----------
+    dem_path : str or pathlib.Path()
+        Can be any raster file (GeoTIFF and VRT supported).
+    tile_size : int
+        In pixels.
+    save_dir : str
+        Save directory.
+    nr_processes : int
+        Number of processes for parallel computing.
 
+    Returns
+    -------
+    dict
+        A python dictionary containing results from tiling, such as paths and processing time.
     """
     # Prepare paths
     in_file = Path(dem_path)
@@ -336,6 +348,7 @@ def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
         save_dir=Path(save_dir)
     )
 
+    # === STEP 4 ===
     # Remove reference grid and valid data mask files
     Path(valid_data_outline).unlink()
     Path(refgrid_name).unlink()
@@ -344,18 +357,20 @@ def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
 
 
 def run_aitlas_object_detection(labels, images_dir):
-    """
+    """Runs AiTLAS for object detection. There are 4 trained models (binary classification) for four different classes
+    (e.g. labels). The models are stored relatively to the script path in the "ml_models" folder.
 
     Parameters
     ----------
-    labels
-    images_dir
+    labels : list
+        A list of labels for which to run the model, can be barrow, enclosure, ringfort or AO.
+    images_dir : str or pathlib.Path()
+        Path to directory containing tiles for inference.
 
     Returns
     -------
-    predictions_dirs: dict
-        List of
-
+    dict
+        A dictionary with a list of paths for each label. The paths are of the result files of object detection.
     """
     images_dir = str(images_dir)
 
@@ -405,18 +420,20 @@ def run_aitlas_object_detection(labels, images_dir):
 
 
 def run_aitlas_segmentation(labels, images_dir):
-    """
+    """Runs AiTLAS for segmentation. There are 4 trained models (binary classification) for four different classes
+    (e.g. labels). The models are stored relatively to the script path in the "ml_models" folder.
 
     Parameters
     ----------
-    labels
-    images_dir
+    labels : list
+        A list of labels for which to run the model, can be barrow, enclosure, ringfort or AO.
+    images_dir : str or pathlib.Path()
+        Path to directory containing tiles for inference.
 
     Returns
     -------
-    predictions_dirs: dict
-        List of
-
+    dict
+        A dictionary with a list of paths for each label. The paths are of the result files of segmentation.
     """
     images_dir = str(images_dir)
 
@@ -473,6 +490,18 @@ def run_aitlas_segmentation(labels, images_dir):
 
 
 def main_routine(inp):
+    """Main processing routine of ADAF. It is started by pressing the RUN button on the widget.
+
+    Parameters
+    ----------
+    inp : adaf_utils.ADAFInput()
+        An object containing all the input parameters from the widget.
+
+    Returns
+    -------
+    str
+        Path to GPKG (vector) file with results of the ML detection.
+    """
     dem_path = Path(inp.dem_path)
 
     # Create unique name for results
@@ -598,22 +627,3 @@ def main_routine(inp):
     logging.debug("\n--\nFINISHED!")
 
     return vector_path
-
-
-def batch_routine(inp):
-    batch_list = inp.input_file_list
-
-    if len(batch_list) == 1:
-        logging.debug("Started SINGLE PROCESSING!")
-    elif len(batch_list) > 1:
-        logging.debug("Started BATCH PROCESSING!")
-    else:
-        logging.debug("NO FILES SELECTED!")
-
-    for file in batch_list:
-        logging.debug(" >>> ", file)
-        inp.update(dem_path=file)
-
-        main_routine(inp)
-
-    return "ADAF FINISHED PROCESSING"
