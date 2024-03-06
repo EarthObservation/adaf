@@ -59,6 +59,25 @@ def make_predictions_on_single_patch_store_preds_single_class(
 
 
 def make_predictions_on_patches_object_detection(model, label, patches_folder, predictions_dir=None):
+    """Generates predictions on patches (the model performs binary object detection).
+
+    Parameters
+    ----------
+    model
+        Selected AITLAS ML model.
+    label : str
+        One of the allowed classes (barrow, enclosure, ringfort, AO).
+    patches_folder : str or pathlib.Path()
+        Path to folder containing images for inference.
+    predictions_dir : str or pathlib.Path()
+        Optional - user can specify a custom folder. Otherwise, a folder called "predictions_segmentation_{label}" is
+        created.
+
+    Returns
+    -------
+    str
+        Path to directory with predictions.
+    """
     patches_folder = Path(patches_folder)
     # If predictions_dir is not given, results are saved into a default folder
     if predictions_dir is None:
@@ -85,21 +104,24 @@ def make_predictions_on_patches_object_detection(model, label, patches_folder, p
 
 
 def make_predictions_on_patches_segmentation(model, label, patches_folder, predictions_dir=None):
-    """Generates predictions on patches (the model performs binary semantic segmentation)
-
+    """Generates predictions on patches (the model performs binary semantic segmentation).
 
     Parameters
     ----------
     model
-    label
-    patches_folder
-    predictions_dir : str or object
+        Selected AITLAS ML model.
+    label : str
+        One of the allowed classes (barrow, enclosure, ringfort, AO).
+    patches_folder : str or pathlib.Path()
+        Path to folder containing images for inference.
+    predictions_dir : str or pathlib.Path()
         Optional - user can specify a custom folder. Otherwise, a folder called "predictions_segmentation_{label}" is
         created.
 
     Returns
     -------
-
+    str
+        Path to directory with predictions.
     """
     patches_folder = Path(patches_folder)
     # If predictions_dir is not given, results are saved into a default folder
@@ -125,6 +147,20 @@ def make_predictions_on_patches_segmentation(model, label, patches_folder, predi
 
 
 def build_vrt_from_list(tif_list, vrt_path):
+    """Create a VRT file from a list of GeoTIFF files. The file is created on the same level as the input directory.
+
+    Parameters
+    ----------
+    tif_list : list
+        A aist of paths to the individual files.
+    vrt_path : pathlib.Path()
+        Path to output VRT file.
+
+    Returns
+    -------
+    str
+        Path to output VRT file.
+    """
     vrt_options = gdal.BuildVRTOptions()
     my_vrt = gdal.BuildVRT(vrt_path.as_posix(), tif_list, options=vrt_options)
     my_vrt = None
@@ -133,6 +169,20 @@ def build_vrt_from_list(tif_list, vrt_path):
 
 
 def build_vrt(ds_dir, vrt_name):
+    """Create a VRT file from directory containing TIFFs. The file is created on the same level as the input directory.
+
+    Parameters
+    ----------
+    ds_dir : str or pathlib.Path()
+        Path to directory containing raster files to be joined into a VRT.
+    vrt_name : str
+        File name of the VRT file.
+
+    Returns
+    -------
+    str
+        Path to VRT file.
+    """
     ds_dir = Path(ds_dir)
     vrt_path = ds_dir.parents[0] / vrt_name
     tif_list = [a.as_posix() for a in Path(ds_dir).glob("*.tif")]
@@ -185,7 +235,7 @@ class Logger:
             log_file.write(log_entry)
 
     def log_vis_inputs(self, image_path, vis_exist):
-        """Creates a header for a new section in the log file"""
+        """Adds parameters of visualization module to log file"""
         # Load image metadata
         image_log = self.log_input_image(image_path)
 
@@ -207,6 +257,7 @@ class Logger:
             log_file.write(log_entry)
 
     def log_vis_results(self, vis_dir, vrt_path, save_vis, processing_time):
+        """Adds results of visualization module to log file"""
         vis_dir = Path(vis_dir)
         vrt_path = Path(vrt_path)
 
@@ -242,7 +293,7 @@ class Logger:
 
     @staticmethod
     def log_input_image(image_path):
-        """Creates a header for a new section in the log file"""
+        """Gets metadata of the input image."""
 
         # Get input image
         with rasterio.open(image_path) as src:
@@ -279,7 +330,7 @@ class Logger:
         return log_entry
 
     def log_inference_inputs(self, ml_method, ml_labels, ml_model="ADAF"):
-        """Creates a header for a new section in the log file"""
+        """Adds parameters for inference to log file-"""
 
         if ml_method == "segmentation":
             ml_method = "Semantic segmentation"
@@ -361,6 +412,7 @@ class Logger:
 
 
 class ADAFInput:
+    """ADAF input parameters."""
     def __init__(self):
         self.input_file_list = None
         self.vis_exist_ok = None
@@ -392,7 +444,23 @@ class ADAFInput:
 
 
 def clip_tile(bounds, out_file_path, src_path, out_nodata=0):
-    """Clips a single tile from a source raster."""
+    """Clips a single tile from a source raster and saves it to disk (GeoTIFF).
+
+    Parameters
+    ----------
+    bounds : list
+        Geographical extents of the tile ["minx", "miny", "maxx", "maxy"].
+    out_file_path : str or pathlib.Path()
+        Path of output file.
+    src_path : str or pathlib.Path()
+        Path of source raster, from which we are cutting out the tile.
+    out_nodata : float
+        Value of nodata pixels for the output tile.
+
+    Returns
+    -------
+        Path to output file.
+    """
     with rasterio.open(src_path) as src:
         orig_window = from_bounds(*bounds, src.transform)
 
@@ -438,6 +506,24 @@ def image_tiling(
         nr_processes=7,
         save_dir=None
 ):
+    """Multiprocessing for clip_tile().
+
+    Parameters
+    ----------
+    source_path : str or pathlib.Path()
+        Path of source raster, from which we are cutting out the tile.
+    ext_list : gpd.GeoDataFrame
+        A list of geographical extents of all the tiles in ["minx", "miny", "maxx", "maxy"] format.
+    nr_processes : int
+        Number of processes for multiprocessing.
+    save_dir : str
+        PAth to directory containing output files.
+
+    Returns
+    -------
+    dict
+        A pythin dictionary containing paths to created files.
+    """
     # Prepare paths
     source_path = Path(source_path)
     src_stem = source_path.stem
