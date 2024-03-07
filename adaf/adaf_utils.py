@@ -359,8 +359,8 @@ class Logger:
         with open(self.log_file_path, 'a') as log_file:
             log_file.write(log_entry)
 
-    def log_inference_results(self, vector_path, processing_time, list_to_raw_files):
-        """Creates a header for a new section in the log file"""
+    def log_inference_results(self, vector_path, processing_time, list_to_raw_files, min_area, roundness):
+        """Adds results of inference to the log file"""
 
         vector_path = Path(vector_path)
 
@@ -381,6 +381,10 @@ class Logger:
             time_unit = "sec"
 
         log_entry = (
+            f"\n"
+            f"    Postprocessing options:\n"
+            f"      > Minimum area [m^2]: {min_area}\n"
+            f"      > Minimum roundness [-]: {roundness}\n"
             f"\n"
             f"    Results vector file:\n"
             f"      > {vector_path}\n"

@@ -571,7 +571,7 @@ def main_routine(inp):
         raise Exception("Wrong ml_type: choose 'object detection' or 'segmentation'")
     t2 = time.time() - t2
 
-    logger.log_inference_results(vector_path, t2, save_raw)
+    logger.log_inference_results(vector_path, t2, save_raw, inp.min_area, inp.roundness)
 
     # Remove visualizations
     if not inp.save_vis:
