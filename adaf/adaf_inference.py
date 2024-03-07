@@ -512,7 +512,7 @@ def main_routine(inp):
     vrt_path = out_paths["vrt_path"]
 
     t1 = time.time() - t1
-    logger.log_vis_results(vis_path, vrt_path, inp.vis_exist_ok, t1)
+    logger.log_vis_results(vis_path, vrt_path, inp.save_vis, t1)
 
     # Make sure it is a Path object!
     vis_path = Path(vis_path)

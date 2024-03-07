@@ -161,3 +161,4 @@ test_data/
 test*.py
 adaf/ml_models
 Untitled.ipynb
+ADAF_widget.ipynb
