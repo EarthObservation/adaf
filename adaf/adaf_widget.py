@@ -12,44 +12,91 @@ from adaf.adaf_utils import ADAFInput
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ INPUT FILES OPTIONS ~~~~~~~~~~~~~~~~~~~~~~~~
 class SelectFilesButton(widgets.Button):
-    """A file widget that leverages tkinter.filedialog."""
-
     def __init__(self):
         super(SelectFilesButton, self).__init__()
-        # Add the selected_files trait
+
+        # Add traits
         self.add_traits(files=traitlets.traitlets.List())
-        # Create the button.
+
+        # Button options
         self.description = "Select file"
         self.style.button_color = None
+
         # Set on click behavior.
         self.on_click(self.select_files)
 
     @staticmethod
     def select_files(b):
-        """Generate instance of tkinter.filedialog.
-
-        Parameters
-        ----------
-        b : obj:
-            An instance of ipywidgets.widgets.Button
-        """
         # Create Tk root
         root = Tk()
         # Hide the main window
         root.withdraw()
         # Raise the root to the top of all windows.
         root.call('wm', 'attributes', '.', '-topmost', True)
-        # List of selected files will be set to b.value
-        b.files = filedialog.askopenfilename(
+
+        selected_files = filedialog.askopenfilename(
             title="Select input files",
             filetypes=[("GeoTIF", "*.tif;*.tiff"), ("VRT", "*.vrt")],
             multiple=True
         )
 
-        n_files = len(b.files)
-        if n_files > 0 and any(element != "" for element in b.files):
+        n_files = len(selected_files)
+        # IF THERE WAS AT LEAST ONE FILE SELECTED
+        if n_files > 0 and any(element != "" for element in selected_files):
+            # Change button style
             b.description = f"{n_files} File selected" if n_files == 1 else f"{n_files} Files selected"
             b.style.button_color = "lightgreen"
+
+            # Update paths to files and folders
+            if b_dir_select.out_is_selected:
+                # If save location folder is already selected, only update files list
+                b.files = selected_files
+            else:
+                # If save location was not yet defined by the user, use the parent folder of selected files as save loc
+                out_dir = Path(selected_files[0]).parent
+                # Update save location label and set flag to true
+                out_dir_label.value = f"<i><b>{out_dir}</b></i>"
+                b_dir_select.folder = out_dir.as_posix()  # str(out_dir)
+                b_dir_select.out_is_selected = True
+                # Finally update files list
+                b.files = selected_files
+
+
+class SelectDirButton(widgets.Button):
+    def __init__(self):
+        super(SelectDirButton, self).__init__()
+
+        # Add traits
+        self.add_traits(folder=traitlets.traitlets.Any())
+        self.add_traits(out_is_selected=traitlets.traitlets.Bool())
+        self.out_is_selected = False
+
+        # Button options
+        self.description = "Select folder"
+
+        # Set on click behavior.
+        self.on_click(self.on_button_click)
+
+    @staticmethod
+    def on_button_click(b):
+        # Create Tk root
+        root = Tk()
+        # Hide the main window
+        root.withdraw()
+        # Raise the root to the top of all windows.
+        root.call('wm', 'attributes', '.', '-topmost', True)
+
+        # List of selected files will be set to b.value
+        selected_folder = filedialog.askdirectory(
+            title="Select output folder"
+        )
+
+        # Update the out_dir_label HTML with the selected directory
+        if selected_folder:
+            path_out_dir = Path(selected_folder)
+            out_dir_label.value = f"<i><b>{path_out_dir.as_posix()}</b></i>"
+            b.out_is_selected = True
+            b.folder = selected_folder
 
 
 # There are 2 options, switching between them will enable either DEM or Visualizations text_box
@@ -68,6 +115,26 @@ rb_input_file = widgets.RadioButtons(
 
 # Button - opens dialog window (select file/s)
 b_file_select = SelectFilesButton()
+
+# ############################
+# ###### OUTPUT OPTIONS ######
+b_dir_select = SelectDirButton()
+out_dir_button = widgets.VBox(
+    [
+        widgets.Label("Select a different save location:"),
+        b_dir_select
+    ]
+)
+
+out_dir_label = widgets.HTML(value=f"<i><b>not selected</b></i>")
+out_dir_location = widgets.VBox(
+    [
+        widgets.Label(value="Save location:"),
+        out_dir_label
+    ]
+)
+# ###### OUTPUT OPTIONS ######
+# ############################
 
 chk_save_vis = widgets.Checkbox(
     value=False,
@@ -379,6 +446,7 @@ def on_button_clicked(b):
             input_file_list=b_file_select.files,  # Input is list of paths
             vis_exist_ok=vis_exist_ok,
             save_vis=save_vis,
+            out_dir=b_dir_select.folder,
             ml_type=rb_semseg_or_objdet.value,
             labels=class_selection,
             ml_model_custom=dropdown.value,
@@ -466,6 +534,16 @@ display(
                         rb_input_file,
                         b_file_select,
                         chk_save_vis
+                    ],
+                    layout=box_layout
+                ),
+            ]),
+            widgets.VBox([
+                widgets.HTML(value=f"<b>Output options:</b>"),
+                widgets.VBox(
+                    [
+                        out_dir_location,
+                        out_dir_button
                     ],
                     layout=box_layout
                 ),
