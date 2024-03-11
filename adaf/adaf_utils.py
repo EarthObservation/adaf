@@ -429,6 +429,7 @@ class ADAFInput:
         self.min_area = None
         self.save_ml_output = None
         self.out_dir = None
+        self.tiles_to_vrt = None
         self.dem_path = None
 
     # def __getattr__(self, attr):

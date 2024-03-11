@@ -138,6 +138,19 @@ chk_save_vis = widgets.Checkbox(
     indent=False
 )
 
+chk_tiling = widgets.Checkbox(
+    value=False,
+    description='Tiles are from same dataset (create VRT)',
+    disabled=False,
+    indent=False
+)
+
+file_selection = widgets.HBox(
+    [
+        b_file_select,
+        chk_tiling
+    ]
+)
 
 # Radio buttons handler (what happens if radio button is changed)
 def input_file_handler(value):
@@ -439,6 +452,7 @@ def on_button_clicked(b):
         my_input = ADAFInput()
         my_input.update(
             input_file_list=b_file_select.files,  # Input is list of paths
+            tiles_to_vrt=chk_tiling.value,
             vis_exist_ok=vis_exist_ok,
             save_vis=save_vis,
             out_dir=b_dir_select.folder,
@@ -527,7 +541,7 @@ display(
                 widgets.VBox(
                     [
                         rb_input_file,
-                        b_file_select,
+                        file_selection,
                         out_dir_location,
                         b_dir_select,
                         chk_save_vis
