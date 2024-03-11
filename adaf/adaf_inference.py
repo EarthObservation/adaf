@@ -462,17 +462,18 @@ def main_routine(inp):
         Path to GPKG (vector) file with results of the ML detection.
     """
     dem_path = Path(inp.dem_path)
+    out_dir = Path(inp.out_dir)
 
     # Create unique name for results
     time_started = localtime()
     t0 = time.time()
 
-    # Save results to parent folder of input file
+    # Create folder for results (time-stamped)
     if inp.ml_type == "object detection":
         suff = "_obj"
     else:
         suff = "_seg"
-    save_dir = Path(dem_path).parent / (dem_path.stem + strftime("_%Y%m%d_%H%M%S", time_started) + suff)
+    save_dir = out_dir / (dem_path.stem + strftime("_%Y%m%d_%H%M%S", time_started) + suff)
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # Create logfile

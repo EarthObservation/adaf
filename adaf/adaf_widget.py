@@ -52,7 +52,7 @@ class SelectFilesButton(widgets.Button):
                 # If save location folder is already selected, only update files list
                 b.files = selected_files
             else:
-                # If save location was not yet defined by the user, use the parent folder of selected files as save loc
+                # If save location was not defined by the user, use the parent dir of selected files as output location
                 out_dir = Path(selected_files[0]).parent
                 # Update save location label and set flag to true
                 out_dir_label.value = f"<i><b>{out_dir}</b></i>"
@@ -72,7 +72,7 @@ class SelectDirButton(widgets.Button):
         self.out_is_selected = False
 
         # Button options
-        self.description = "Select folder"
+        self.description = "Change output folder"
 
         # Set on click behavior.
         self.on_click(self.on_button_click)
@@ -119,17 +119,12 @@ b_file_select = SelectFilesButton()
 # ############################
 # ###### OUTPUT OPTIONS ######
 b_dir_select = SelectDirButton()
-out_dir_button = widgets.VBox(
-    [
-        widgets.Label("Select a different save location:"),
-        b_dir_select
-    ]
-)
 
 out_dir_label = widgets.HTML(value=f"<i><b>not selected</b></i>")
-out_dir_location = widgets.VBox(
+
+out_dir_location = widgets.HBox(
     [
-        widgets.Label(value="Save location:"),
+        widgets.Label(value="Output folder:"),
         out_dir_label
     ]
 )
@@ -533,17 +528,9 @@ display(
                     [
                         rb_input_file,
                         b_file_select,
-                        chk_save_vis
-                    ],
-                    layout=box_layout
-                ),
-            ]),
-            widgets.VBox([
-                widgets.HTML(value=f"<b>Output options:</b>"),
-                widgets.VBox(
-                    [
                         out_dir_location,
-                        out_dir_button
+                        b_dir_select,
+                        chk_save_vis
                     ],
                     layout=box_layout
                 ),
