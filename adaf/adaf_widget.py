@@ -7,7 +7,7 @@ from IPython.display import display
 from yaspin import yaspin
 
 from adaf.adaf_inference import main_routine
-from adaf.adaf_utils import ADAFInput
+from adaf.adaf_utils import ADAFInput, build_vrt_from_list
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~ INPUT FILES OPTIONS ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -151,6 +151,7 @@ file_selection = widgets.HBox(
         chk_tiling
     ]
 )
+
 
 # Radio buttons handler (what happens if radio button is changed)
 def input_file_handler(value):
@@ -476,6 +477,11 @@ def on_button_clicked(b):
 
                 if len(batch_list) == 1:
                     spin.write("Started - single image processing")
+                elif len(batch_list) > 1 and chk_tiling.value:
+                    spin.write("Started - building VRT")
+                    vrt_path = Path(b_dir_select.folder) / "virtual_mosaic.vrt"
+                    batch_list = [build_vrt_from_list(batch_list, vrt_path)]
+                    spin.write("        - single image processing")
                 elif len(batch_list) > 1:
                     spin.write("Started - batch processing")
                 else:

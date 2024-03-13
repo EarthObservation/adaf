@@ -378,7 +378,7 @@ def run_aitlas_object_detection(labels, images_dir):
     return predictions_dirs
 
 
-def run_aitlas_segmentation(labels, images_dir):
+def run_aitlas_segmentation(labels, images_dir, custom_model=None):
     """Runs AiTLAS for segmentation. There are 4 trained models (binary classification) for four different classes
     (e.g. labels). The models are stored relatively to the script path in the "ml_models" folder.
 
