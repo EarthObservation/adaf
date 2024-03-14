@@ -273,9 +273,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
 
 
 def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
-    """Calculates visualisations (by tile) from DEM and saves them into VRT (Geotiff) file.
-
-    Uses RVT (see adaf_vis.py).
+    """Cuts visualisation into tiles.
 
     Parameters
     ----------

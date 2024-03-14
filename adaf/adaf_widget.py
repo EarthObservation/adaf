@@ -169,7 +169,7 @@ rb_semseg_or_objdet = widgets.RadioButtons(
     options=['segmentation', 'object detection'],
     value='segmentation',
     # layout={'width': 'max-content'}, # If the items names are long
-    description='Select ML method:',
+    description='Select machine learning method:',
     disabled=False
 )
 
@@ -231,12 +231,12 @@ rb_ml_switch = widgets.RadioButtons(
     options=['ADAF model', 'Custom model'],
     value='ADAF model',
     # layout={'width': 'max-content'}, # If the items names are long
-    description='Select ML model:',
+    description='Select machine learning model:',
     disabled=False
 )
 
 txt_custom_model = widgets.Text(
-    description='Path to custom ML model [*.tar]:',
+    description='Path to custom machine learning model [*.tar]:',
     placeholder="model_folder/saved_model.tar",
     style={'description_width': 'initial'},
     layout=widgets.Layout(width='90%'),
@@ -306,14 +306,15 @@ rb_ml_switch.observe(ml_method_handler, names="index")
 
 # Checkbox to save ML predictions files
 chk_save_predictions_descriptions = [
-    "Keep probability masks (raw ML results)",
-    "Keep bounding box txt files (raw ML results)"
+    "Keep probability masks (raw segmentation results)",
+    "Keep bounding box txt files (raw object detection results)"
 ]
 chk_save_predictions = widgets.Checkbox(
     value=False,
     description=chk_save_predictions_descriptions[0],
     disabled=False,
-    indent=False
+    indent=False,
+    layout=widgets.Layout(width='90%')
 )
 
 
@@ -345,7 +346,7 @@ roundness_box = widgets.GridBox(
         label_round, lbl_round50, img_round50, lbl_round90, img_round95
     ],
     layout=widgets.Layout(
-        width='70%',
+        width='90%',
         grid_template_columns='200px 10% auto 10% auto',
         grid_template_rows='auto',
         grid_gap='0px',
@@ -556,7 +557,7 @@ display(
                 ),
             ]),
             widgets.VBox([
-                widgets.HTML(value=f"<b>ML options:</b>"),
+                widgets.HTML(value=f"<b>Machine learning options:</b>"),
                 widgets.VBox(
                     [
                         rb_semseg_or_objdet,
