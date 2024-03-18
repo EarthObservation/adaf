@@ -30,7 +30,7 @@ from adaf.adaf_vis import tiled_processing
 logging.disable(logging.INFO)
 
 
-def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths=False):
+def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths=False, min_area=None):
     """Converts object detection bounding boxes from text to vector format.
 
     Parameters
@@ -41,6 +41,8 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths
         Probability threshold for predictions.
     keep_ml_paths : bool
         If true, add path to ML predictions file from which the label was created as an attribute.
+    min_area : float
+        Minimum area threshold in m^2 (max = 40 m^2).
 
     Returns
     -------
@@ -79,37 +81,34 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths
 
                 # Filter by probability threshold
                 data = data[data['score'] > threshold]
+
                 # Add paths to ML results
                 if keep_ml_paths:
                     data["prediction_path"] = str(Path().joinpath(*file_path.parts[-3:]))
+
+                # Join overlapping polygons (dissolve and keep disjoint separate)
+                data_ = gpd.GeoDataFrame(
+                    geometry=[data.unary_union],
+                    crs=data.crs
+                ).explode(index_parts=False).reset_index(drop=True)
+                # Keep attributes from original gdf, select max score
+                data_ = gpd.sjoin(data_, data, how='left').drop(columns=['index_right'])
+                data_ = data_.dissolve(
+                    data_.index, aggfunc={'score': 'max', 'label': 'first', 'prediction_path': 'first'}
+                )
+
                 # Don't append if there are no predictions left after filtering
-                if data.shape[0] > 0:
-                    appended_data.append(data)
+                if data_.shape[0] > 0:
+                    appended_data.append(data_)
 
     if appended_data:
         # We have at least one detection
         gdf = gpd.GeoDataFrame(pd.concat(appended_data, ignore_index=True), crs=crs)
 
-        # # If same object from two different tiles overlap, join them into one
-        # gdf["unique_i"] = gdf.index
-        # to_concat = []
-        # for label, _ in predictions_dirs_dict.items():
-        #     gdf_1 = gdf[gdf["label"] == label]
-        #     intersection_gdf = gdf_1.overlay(gdf_1, how="intersection", keep_geom_type=True)
-        #     intersection_gdf = intersection_gdf.loc[intersection_gdf.unique_i_1 != intersection_gdf.unique_i_2]
-        #     # The features to dissolve are the intersecting ones, excluding the self-intersections
-        #     to_dissolve_gdf = gdf_1.loc[
-        #         gdf_1.unique_i.isin(intersection_gdf.unique_i_1) | gdf_1.unique_i.isin(intersection_gdf.unique_i_2)
-        #         ]
-        #     to_dissolve_gdf_2 = to_dissolve_gdf.dissolve(by="label", aggfunc={"score": "mean"}).explode(
-        #         index_parts=False).reset_index()
-        #     # Other features should not be dissolved
-        #     no_dissolve_gdf = gdf_1.loc[~gdf_1.index.isin(to_dissolve_gdf.index)].drop(columns=["unique_i"])
-        #     # Compile
-        #     result_gdf = pd.concat([to_dissolve_gdf_2, no_dissolve_gdf]).reset_index(drop=True)
-        #     to_concat.append(result_gdf)
-        # final_gdf = gpd.GeoDataFrame(pd.concat(to_concat).reset_index(drop=True), crs=gdf.crs)
-        # # appended_data = appended_data.dissolve(by="label").explode(index_parts=False).reset_index(drop=False)
+        # Post-processing
+        if min_area:
+            gdf["area"] = gdf.geometry.area
+            gdf = gdf[gdf["area"] > min_area]
 
         # Export file
         gdf.to_file(str(output_path), driver="GPKG")
@@ -193,25 +192,8 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5,
         gdf = gpd.GeoDataFrame(pd.concat(gdf_out, ignore_index=True), crs=crs)
 
         # # If same object from two different tiles overlap, join them into one
-        # gdf["unique_i"] = gdf.index
-        # to_concat = []
-        # for label, _ in predictions_dirs_dict.items():
-        #     gdf_1 = gdf[gdf["label"] == label]
-        #     intersection_gdf = gdf_1.overlay(gdf_1, how="intersection", keep_geom_type=True)
-        #     intersection_gdf = intersection_gdf.loc[intersection_gdf.unique_i_1 != intersection_gdf.unique_i_2]
-        #     # The features to dissolve are the intersecting ones, excluding the self-intersections
-        #     to_dissolve_gdf = gdf_1.loc[
-        #         gdf_1.unique_i.isin(intersection_gdf.unique_i_1) | gdf_1.unique_i.isin(intersection_gdf.unique_i_2)
-        #         ]
-        #     to_dissolve_gdf_2 = to_dissolve_gdf.dissolve(by="label", aggfunc={"score": "mean"}).explode(
-        #         index_parts=False).reset_index()
-        #     # Other features should not be dissolved
-        #     no_dissolve_gdf = gdf_1.loc[~gdf_1.index.isin(to_dissolve_gdf.index)].drop(columns=["unique_i"])
-        #     # Compile
-        #     result_gdf = pd.concat([to_dissolve_gdf_2, no_dissolve_gdf]).reset_index(drop=True)
-        #     to_concat.append(result_gdf)
-        # final_gdf = gpd.GeoDataFrame(pd.concat(to_concat).reset_index(drop=True), crs=gdf.crs)
-        # # gdf_out = gdf_out.dissolve(by='label').explode(index_parts=False).reset_index(drop=False)
+        # In semantic segmentation this will never happen, because each pixel can belong to only one polygon (when
+        # creating polygons from probability masks.
 
         # Post-processing
         if roundness:
@@ -525,7 +507,11 @@ def main_routine(inp):
         logging.debug("Running object detection")
         predictions_dict = run_aitlas_object_detection(inp.labels, vis_path)
 
-        vector_path = object_detection_vectors(predictions_dict, keep_ml_paths=inp.save_ml_output)
+        vector_path = object_detection_vectors(
+            predictions_dict,
+            keep_ml_paths=inp.save_ml_output,
+            min_area=inp.min_area
+        )
         if vector_path != "":
             logging.debug("Created vector file", vector_path)
         else:
