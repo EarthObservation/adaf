@@ -133,7 +133,7 @@ class SelectDirButton(widgets.Button):
 
 # There are 2 options, switching between them will enable either DEM or Visualizations text_box
 rb_input_file_options = [
-    'DFM (*.tif / *.vrt)',
+    'DEM (*.tif / *.vrt)',
     'Visualization (*.tif / *.vrt)'
 ]
 
