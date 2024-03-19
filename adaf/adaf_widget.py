@@ -62,6 +62,37 @@ class SelectFilesButton(widgets.Button):
                 b.files = selected_files
 
 
+class SelectTarButton(widgets.Button):
+    def __init__(self):
+        super(SelectTarButton, self).__init__()
+
+        self.description = "Select file"
+        # Add traits
+        self.add_traits(files=traitlets.traitlets.Unicode())
+        # Set on click behavior.
+
+        self.on_click(self.select_file)
+
+    @staticmethod
+    def select_file(b):
+        # Create Tk root
+        root = Tk()
+        # Hide the main window
+        root.withdraw()
+        # Raise the root to the top of all windows.
+        root.call('wm', 'attributes', '.', '-topmost', True)
+
+        selected_file = filedialog.askopenfilename(
+            title="Select input file",
+            filetypes=[("TAR", "*.tar")],
+        )
+
+        if selected_file:
+            b.files = selected_file
+            b.style.button_color = "lightgreen"
+            b.description = "Change file"
+
+
 class SelectDirButton(widgets.Button):
     def __init__(self):
         super(SelectDirButton, self).__init__()
@@ -101,7 +132,7 @@ class SelectDirButton(widgets.Button):
 
 # There are 2 options, switching between them will enable either DEM or Visualizations text_box
 rb_input_file_options = [
-    'DEM (*.tif / *.vrt)',
+    'DFM (*.tif / *.vrt)',
     'Visualization (*.tif / *.vrt)'
 ]
 
@@ -115,6 +146,9 @@ rb_input_file = widgets.RadioButtons(
 
 # Button - opens dialog window (select file/s)
 b_file_select = SelectFilesButton()
+
+# Button for Custom model (TAR)
+b_tar_select = SelectTarButton()
 
 # ############################
 # ###### OUTPUT OPTIONS ######
@@ -269,7 +303,7 @@ adaf_box = widgets.VBox([
 # --------------------------------------------------------
 
 # --------------------------------------------------------
-custom_box = txt_custom_model
+custom_box = b_tar_select  # txt_custom_model
 # --------------------------------------------------------
 
 stack = widgets.Stack([adaf_box, custom_box], selected_index=0)
@@ -291,12 +325,14 @@ def ml_method_handler(value):
         class_enclosure.disabled = False
         class_all_archaeology.disabled = False
         txt_custom_model.disabled = True
+        b_tar_select.disabled = True
     elif value.new == 1:
         class_barrow.disabled = True
         class_ringfort.disabled = True
         class_enclosure.disabled = True
         class_all_archaeology.disabled = True
         txt_custom_model.disabled = False
+        b_tar_select.disabled = False
 
 
 # When radio button trait changes, call the what_traits_radio function
@@ -328,7 +364,7 @@ def chk_save_predictions_handler(value):
     elif value.new == 1:
         # Segmentation
         fs_roundness.disabled = True
-        fs_area.disabled = True
+        fs_area.disabled = False
 
 
 rb_semseg_or_objdet.observe(chk_save_predictions_handler)
@@ -461,7 +497,7 @@ def on_button_clicked(b):
             ml_type=rb_semseg_or_objdet.value,
             labels=class_selection,
             ml_model_custom=dropdown.value,
-            custom_model_pth=txt_custom_model.value,
+            custom_model_pth=b_tar_select.files,  # txt_custom_model.value,
             roundness=fs_roundness.value,
             min_area=fs_area.value,
             save_ml_output=chk_save_predictions.value
@@ -473,6 +509,7 @@ def on_button_clicked(b):
         #         final_adaf_output = batch_routine(my_input)
 
         with output_widget:
+            display(b_tar_select.files)
             with yaspin() as spin:
                 batch_list = b_file_select.files
 
