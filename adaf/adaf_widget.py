@@ -91,6 +91,7 @@ class SelectTarButton(widgets.Button):
             b.files = selected_file
             b.style.button_color = "lightgreen"
             b.description = "Change file"
+            tar_pth_label.value = f"<i><b>{Path(selected_file).as_posix()}</b></i>"
 
 
 class SelectDirButton(widgets.Button):
@@ -155,6 +156,7 @@ b_tar_select = SelectTarButton()
 b_dir_select = SelectDirButton()
 
 out_dir_label = widgets.HTML(value=f"<i><b>not selected</b></i>")
+tar_pth_label = widgets.HTML(value=f"<i><b>not selected</b></i>")
 
 out_dir_location = widgets.HBox(
     [
@@ -303,7 +305,17 @@ adaf_box = widgets.VBox([
 # --------------------------------------------------------
 
 # --------------------------------------------------------
-custom_box = b_tar_select  # txt_custom_model
+
+
+custom_box = widgets.VBox([
+    b_tar_select,
+    widgets.HBox(
+        [
+            widgets.Label(value="Model path:"),
+            tar_pth_label
+        ]
+    )
+])
 # --------------------------------------------------------
 
 stack = widgets.Stack([adaf_box, custom_box], selected_index=0)
@@ -509,7 +521,6 @@ def on_button_clicked(b):
         #         final_adaf_output = batch_routine(my_input)
 
         with output_widget:
-            display(b_tar_select.files)
             with yaspin() as spin:
                 batch_list = b_file_select.files
 

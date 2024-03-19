@@ -299,7 +299,7 @@ def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
     return out_paths
 
 
-def run_aitlas_object_detection(labels, images_dir):
+def run_aitlas_object_detection(labels, images_dir, custom_model=None):
     """Runs AiTLAS for object detection. There are 4 trained models (binary classification) for four different classes
     (e.g. labels). The models are stored relatively to the script path in the "ml_models" folder.
 
@@ -309,6 +309,8 @@ def run_aitlas_object_detection(labels, images_dir):
         A list of labels for which to run the model, can be barrow, enclosure, ringfort or AO.
     images_dir : str or pathlib.Path()
         Path to directory containing tiles for inference.
+    custom_model : str or pathlib.Path()
+        Path to tar file for custom model.
 
     Returns
     -------
@@ -322,7 +324,8 @@ def run_aitlas_object_detection(labels, images_dir):
         "barrow": r".\ml_models\OD_barrow.tar",
         "enclosure": r".\ml_models\OD_enclosure.tar",
         "ringfort": r".\ml_models\OD_ringfort.tar",
-        "AO": r".\ml_models\OD_AO.tar"
+        "AO": r".\ml_models\OD_AO.tar",
+        "custom": custom_model
     }
 
     if cuda.is_available():
@@ -372,6 +375,8 @@ def run_aitlas_segmentation(labels, images_dir, custom_model=None):
         A list of labels for which to run the model, can be barrow, enclosure, ringfort or AO.
     images_dir : str or pathlib.Path()
         Path to directory containing tiles for inference.
+    custom_model : str or pathlib.Path()
+        Path to tar file for custom model.
 
     Returns
     -------
@@ -385,7 +390,8 @@ def run_aitlas_segmentation(labels, images_dir, custom_model=None):
         "barrow": r".\ml_models\barrow_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
         "enclosure": r".\ml_models\enclosure_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
         "ringfort": r".\ml_models\ringfort_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
-        "AO": r".\ml_models\AO_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar"
+        "AO": r".\ml_models\AO_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
+        "custom": custom_model
     }
 
     if cuda.is_available():
@@ -503,13 +509,19 @@ def main_routine(inp):
     vis_path = Path(vis_path)
 
     # --- INFERENCE ---
-    logger.log_inference_inputs(inp.ml_type, inp.labels, inp.ml_model_custom)
+    # Select name of the label for custom model
+    if inp.ml_model_custom == "Custom model":
+        labels = ["custom"]
+    else:
+        labels = inp.labels
+
+    logger.log_inference_inputs(inp.ml_type,  labels, inp.ml_model_custom, inp.custom_model_pth)
     # For logger
     save_raw = []
     t2 = time.time()
     if inp.ml_type == "object detection":
         logging.debug("Running object detection")
-        predictions_dict = run_aitlas_object_detection(inp.labels, vis_path)
+        predictions_dict = run_aitlas_object_detection(labels, vis_path, inp.custom_model_pth)
 
         vector_path = object_detection_vectors(
             predictions_dict,
@@ -530,7 +542,7 @@ def main_routine(inp):
 
     elif inp.ml_type == "segmentation":
         logging.debug("Running segmentation")
-        predictions_dict = run_aitlas_segmentation(inp.labels, vis_path)
+        predictions_dict = run_aitlas_segmentation(labels, vis_path, inp.custom_model_pth)
 
         vector_path = semantic_segmentation_vectors(
             predictions_dict,

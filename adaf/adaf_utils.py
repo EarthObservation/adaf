@@ -329,7 +329,7 @@ class Logger:
 
         return log_entry
 
-    def log_inference_inputs(self, ml_method, ml_labels, ml_model="ADAF"):
+    def log_inference_inputs(self, ml_method, ml_labels, ml_model="ADAF", custom_path=''):
         """Adds parameters for inference to log file-"""
 
         if ml_method == "segmentation":
@@ -337,6 +337,11 @@ class Logger:
 
         if ml_method == "object detection":
             ml_method = ml_method.capitalize()
+
+        if ml_model == "Custom model":
+            custom_str = f"    - Path: {custom_path}\n"
+        else:
+            custom_str = ""
 
         # Write labels
         # log_labels = ""
@@ -351,7 +356,7 @@ class Logger:
             f"Inference log:\n"
             "\n"
             f"    ML method: {ml_method}\n"
-            f"    ML model: {ml_model}\n"
+            f"    ML model: {ml_model}\n{custom_str}"
             f"    Selected classes: * {log_labels}"
             f"\n"
         )
