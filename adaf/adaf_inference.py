@@ -82,23 +82,27 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths
                 # Filter by probability threshold
                 data = data[data['score'] > threshold]
 
+                # Convert pandas to geopandas
+                data = gpd.GeoDataFrame(data, crs=crs)
+
                 # Add paths to ML results
+                agg_func = {'score': 'max', 'label': 'first'}
                 if keep_ml_paths:
                     data["prediction_path"] = str(Path().joinpath(*file_path.parts[-3:]))
-
-                # Join overlapping polygons (dissolve and keep disjoint separate)
-                data_ = gpd.GeoDataFrame(
-                    geometry=[data.unary_union],
-                    crs=data.crs
-                ).explode(index_parts=False).reset_index(drop=True)
-                # Keep attributes from original gdf, select max score
-                data_ = gpd.sjoin(data_, data, how='left').drop(columns=['index_right'])
-                data_ = data_.dissolve(
-                    data_.index, aggfunc={'score': 'max', 'label': 'first', 'prediction_path': 'first'}
-                )
+                    agg_func['prediction_path'] = 'first'
 
                 # Don't append if there are no predictions left after filtering
-                if data_.shape[0] > 0:
+                if data.shape[0] > 0:
+                    # Join overlapping polygons (dissolve and keep disjoint separate)
+                    data_ = gpd.GeoDataFrame(
+                        geometry=[data.unary_union],
+                        crs=data.crs
+                    ).explode(index_parts=False).reset_index(drop=True)
+                    # Keep attributes from original gdf, select max score
+                    data_ = gpd.sjoin(data_, data, how='left').drop(columns=['index_right'])
+
+                    data_ = data_.dissolve(data_.index, aggfunc=agg_func)
+
                     appended_data.append(data_)
 
     if appended_data:
