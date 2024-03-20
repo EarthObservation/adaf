@@ -1,3 +1,8 @@
+"""
+ADAF - utility functions
+Created on 26 May 2023
+@author: Nejc Čož, ZRC SAZU, Novi trg 2, 1000 Ljubljana, Slovenia
+"""
 import logging
 import multiprocessing as mp
 import os

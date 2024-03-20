@@ -1,9 +1,9 @@
 """
 ADAF - visualisations module
+Created on 26 May 2023
+@author: Nejc Čož, ZRC SAZU, Novi trg 2, 1000 Ljubljana, Slovenia
 
 Creates visualisations from DEM and stores them as VRT.
-
-DEMO VERSION: At the moment it only creates NORMALISED SLRM visualisations (min/max -0.5/0.5)
 
 """
 import logging

@@ -1,6 +1,10 @@
-"""Script containing tools for working with reference grid."""
+"""
+ADAF - grid_tools
+Created on 26 May 2023
+@author: Nejc Čož, ZRC SAZU, Novi trg 2, 1000 Ljubljana, Slovenia
 
-
+Script containing tools for working with reference grid.
+"""
 import logging
 import os
 from pathlib import Path

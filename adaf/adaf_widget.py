@@ -1,3 +1,8 @@
+"""
+ADAF - GUI
+Created on 26 May 2023
+@author: Nejc Čož, ZRC SAZU, Novi trg 2, 1000 Ljubljana, Slovenia
+"""
 from pathlib import Path
 from tkinter import Tk, filedialog
 
