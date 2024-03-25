@@ -159,6 +159,6 @@ experiments/
 adaf/_test_inference.py
 test_data/
 test*.py
-adaf/ml_models
+adaf/ml_models/*.tar
 Untitled.ipynb
 ADAF_widget.ipynb
