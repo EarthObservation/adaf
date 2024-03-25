@@ -18,7 +18,7 @@ from rasterio.features import geometry_mask
 from shapely.affinity import translate
 from shapely.geometry import box
 
-from adaf_utils import clip_tile
+from adaf.adaf_utils import clip_tile
 
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
