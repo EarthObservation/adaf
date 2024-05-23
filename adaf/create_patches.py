@@ -387,15 +387,17 @@ def create_patches_main(input_raster, seg_masks_dict, output_directory):
             )
         )
 
-    print("Start multiproc")
+    # print("Start multiproc")
 
     with mp.Pool(nr_processes) as p:
-        realist = [p.apply_async(create_one_patch, r) for r in input_process_list]
-        for result in realist:
-            pool_out = result.get()
+        _ = [p.apply_async(create_one_patch, r) for r in input_process_list]
+        # for result in realist:
+        #     pool_out = result.get()
 
     # # Single run (FOR DEBUG)
     # tiles_gpkg(*input_process_list[10])
+
+    print("Finished creating patches")
 
 
 if __name__ == "__main__":
