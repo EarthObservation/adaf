@@ -12,9 +12,7 @@ with three types of archaeological features (barrows, ringforts, enclosures). Th
 Relief Visualisation Toolbox (RVT) for processing the input data and the Artificial Intelligence Toolbox for Earth
 Observation (AiTLAS), which provides access to the ML models.
 
-<img src="adaf/media/ringfort.jpg" alt="drawing" width="200"/>
-<img src="adaf/media/barrows.jpg" alt="drawing" width="200"/>
-<img src="adaf/media/enclosure.jpg" alt="drawing" width="200"/>
+<img src="adaf/media/ringfort.jpg" alt="drawing" width="200"/> <img src="adaf/media/barrows.jpg" alt="drawing" width="200"/> <img src="adaf/media/enclosure.jpg" alt="drawing" width="200"/>
 
 
 # Installation
