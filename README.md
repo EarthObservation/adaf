@@ -84,7 +84,7 @@ See the **Step by step instructions** below.
 8. Enable the use of the AiTLAS virtual environment in Jupyter notebooks by running:
 
     ```bash   
-    python -m ipykernel install --name aitlas
+    python -m ipykernel install --name adaf
     ```
 
 9. Navigate back to main adaf folder and run Jupyter Notebook with the following command:
