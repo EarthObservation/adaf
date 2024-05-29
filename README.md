@@ -30,7 +30,7 @@ See the **Step by step instructions** below.
 
 * Files with trained Machine learning models. Download from [Dropbox](https://www.dropbox.com/t/QRVtxUVTPRVSnYKK).
 
-    > **Warning:** Download contians data with large file size **~5GB** in total. This includes 8 pretrained ML models saved as TAR files - 4 for semantic segmentation and 4 for object detection.
+    > **Warning:** Download contains data with large file size **~5GB** in total. This includes 8 pretrained ML models saved as TAR files - 4 for semantic segmentation and 4 for object detection.
 
 
 ## Step by step instructions
