@@ -24,9 +24,11 @@ See the **Step by step instructions** below.
 
 
 ## Requirements
-* Python 3.8 (recommended to use conda virtual environment: download and install
+* Python 3.9 (recommended to use conda virtual environment: download and install
 [Miniconda](https://docs.anaconda.com/free/miniconda/) or
 [Anaconda](https://docs.anaconda.com/free/anaconda/install/windows/))
+
+    > ADAF has been tested with Python 3.9. Newer Python versions should also work, but you will need to manually install a compatible version of the GDAL library. For details, refer to section 7 in the step-by-step instructions.
 
 * Files with trained Machine learning models. Download from [Dropbox](https://www.dropbox.com/t/QRVtxUVTPRVSnYKK).
 
@@ -39,24 +41,26 @@ See the **Step by step instructions** below.
 
 2. Move the TAR files to `<path-to-repository>\adaf\ml_models`
 
-    > Do not change the filenames and make sure that files are copied to the exact location!
+    **Ensure that all files are copied to the exact specified location!**
+    
+    > Do not rename any files or extract the contents of the individual TAR files — they must remain intact.
 
-3. Run Anaconda Prompt (press `Windows` key and type “anaconda prompt”).
+3. Run Anaconda Prompt
+
+    > To open the Anaconda Prompt you can press the `Windows` key, type “Anaconda Prompt”, and select the application from the search results.
 
 4. In the Anaconda Prompt, navigate to the installation folder by running commands:
     
    ```bash
    cd <path-to-repository>
-   cd installation
    ```
    
-    >`<path-to-repository>` is the location where you have downloaded and unzipped the installation files, 
-   > for example `C:\temp\adaf\`
+   `<path-to-repository>` is the location where you have downloaded and unzipped the installation files (for example `C:\temp\adaf\`)
 
 5. Create and activate a conda environment called `adaf`. Run commands:
 
     ```bash
-    conda create -n adaf python=3.8
+    conda create -n adaf python=3.9 -c conda-forge
     conda activate adaf
     ```
     
@@ -74,23 +78,29 @@ See the **Step by step instructions** below.
 
 ---
 
-7. Install the packages using pip:
+7. Install required Python packages
 
-    ```bash
-    pip install GDAL-3.4.3-cp38-cp38-win_amd64.whl
-    pip install aitlas-0.0.1-py3-none-any.whl
-    ```
+    * GDAL
+        ```bash
+        conda install -c conda-forge gdal
+        ```
+        > Older Python versions: Wheel file for Python 3.8 is available in the folder `installation` and can be installed manualy using pip. 
+    
+    * AiTLAS
+      This package instals AiTLAS and all other requirements for running ADAF (rasterio, jupyter notebooks, etc.)
+        ```bash
+        pip install ./isntallation/aitlas-0.0.1-py3-none-any.whl
+        ```
    
-8. Enable the use of the AiTLAS virtual environment in Jupyter notebooks by running:
+8. Enable the use of the `adaf` virtual environment in Jupyter notebooks by running:
 
     ```bash   
     python -m ipykernel install --name adaf
     ```
 
-9. Navigate back to main adaf folder and run Jupyter Notebook with the following command:
+9. Run Jupyter Notebook with the following command:
 
     ```bash   
-    cd ..
     jupyter notebook ADAF_main.ipynb
     ```
 
