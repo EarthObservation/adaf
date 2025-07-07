@@ -1,4 +1,4 @@
-[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg?style=for-the-badge)](https://www.repostatus.org/#active) [![License: Apache License 2.0](https://img.shields.io/badge/License-Apache%202.0-olivegreen.svg)](https://github.com/biasvariancelabs/aitlas/blob/master/LICENSE) [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/release/python-370/)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg?style=for-the-badge)](https://www.repostatus.org/#active) [![License: Apache License 2.0](https://img.shields.io/badge/License-Apache%202.0-olivegreen.svg)](https://github.com/EarthObservation/adaf/blob/main/LICENSE.txt) [![Python 3.7+](https://img.shields.io/badge/python-3.7+-blue.svg)](https://www.python.org/downloads/release/python-370/)
 
 
 
@@ -114,7 +114,7 @@ Development of ADAF financed by:
 * European Research Council project STONE (GAP-101089123)
 
 # License
-This project is licensed under the terms of the [Apache License 2.0].
+This project is licensed under the terms of the [Apache License 2.0] (https://github.com/EarthObservation/adaf/blob/main/LICENSE.txt).
 
 # About
 ADAF - Automatic Detection of Archaeological Features library by Nejc Čož, Žiga Kokalj, Dragi Kocev, Ana Kostovska 2024.
