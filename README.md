@@ -103,9 +103,20 @@ See the **Step by step instructions** below.
     ```bash   
     jupyter notebook ADAF_main.ipynb
     ```
-# License
-This project is licensed under the terms of the [Apache License 2.0](LICENSE).
 
-# About
+## Contributing
+Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change. Please report any bugs and suggestions for improvements.
+
+## Acknowledgment
+Development of ADAF financed by:
+* Transport Infrastructure Ireland Open Research Call 2021.
+* Slovenian Research and Innovation Agency core funding Earth Observation and geoinformatics (No. P2-0406).
+* European Research Council project STONE (GAP-101089123)
+
+## License
+This project is licensed under the terms of the [Apache License 2.0].
+
+## About
 ADAF - Automatic Detection of Archaeological Features library by Nejc Čož and Žiga Kokalj 2024.
-It is developed in collaboration between ZRC SAZU and Bias Variance Labs. 
+
+It is developed in collaboration between ZRC SAZU and Bias Variance Labs.
