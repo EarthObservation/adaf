@@ -114,9 +114,9 @@ Development of ADAF financed by:
 * European Research Council project STONE (GAP-101089123)
 
 # License
-This project is licensed under the terms of the [Apache License 2.0] (https://github.com/EarthObservation/adaf/blob/main/LICENSE.txt).
+This project is licensed under the terms of the [Apache License 2.0](https://github.com/EarthObservation/adaf/blob/main/LICENSE.txt).
 
 # About
-ADAF - Automatic Detection of Archaeological Features library by Nejc Čož, Žiga Kokalj, Dragi Kocev, Ana Kostovska 2024.
+ADAF - Automatic Detection of Archaeological Features library by Nejc Čož, Žiga Kokalj, Dragi Kocev, Ana Kostovska, 2024.
 
 It is developed in collaboration between ZRC SAZU and Bias Variance Labs.
