@@ -30,7 +30,7 @@ See the **Step by step instructions** below.
 
     > ADAF has been tested with Python 3.9. Newer Python versions should also work, but you will need to manually install a compatible version of the GDAL library. For details, refer to section 7 in the step-by-step instructions.
 
-* Files with trained Machine learning models. Download from [Dropbox](https://www.dropbox.com/t/QRVtxUVTPRVSnYKK).
+* Files with trained Machine learning models. Download from [HERE](https://doi.org/10.5281/zenodo.15848662).
 
     > **Warning:** Download contains data with large file size **~5GB** in total. This includes 8 pretrained ML models saved as TAR files - 4 for semantic segmentation and 4 for object detection.
 
