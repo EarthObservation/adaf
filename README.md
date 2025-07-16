@@ -93,7 +93,7 @@ See the **Step by step instructions** below.
     * AiTLAS
       This package instals AiTLAS and all other requirements for running ADAF (rasterio, jupyter notebooks, etc.)
         ```bash
-        pip install ./isntallation/aitlas-0.0.1-py3-none-any.whl
+        pip install ./installation/aitlas-0.0.1-py3-none-any.whl
         ```
    
 8. Enable the use of the `adaf` virtual environment in Jupyter notebooks by running:
