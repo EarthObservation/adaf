@@ -123,4 +123,4 @@ This project is licensed under the terms of the [Apache License 2.0](https://git
 # About
 ADAF - Automatic Detection of Archaeological Features library by Nejc Čož, Žiga Kokalj, Dragi Kocev, Ana Kostovska, 2024.
 
-It is developed in collaboration between ZRC SAZU and Bias Variance Labs.
+It is developed in collaboration between ZRC SAZU, Bias Variance Labs and The Discovery Programmme..
