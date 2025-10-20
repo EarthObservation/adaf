@@ -255,6 +255,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
 
     # Create reference grid, filter it and save it to disk
     tiles_extents = gt.bounding_grid(in_file.as_posix(), tile_size, tag=False)
+    tiles_extents["geometry"] = tiles_extents.geometry.buffer(32, join_style=2)
     tiles_extents = gt.filter_by_outline(tiles_extents, valid_data_outline)
 
     # Run visualizations
@@ -296,6 +297,7 @@ def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
 
     # Create reference grid and filter it
     tiles_extents = gt.bounding_grid(in_file.as_posix(), tile_size, tag=False)
+    tiles_extents["geometry"] = tiles_extents.geometry.buffer(32, join_style=2)
     tiles_extents = gt.filter_by_outline(tiles_extents, valid_data_outline)
 
     # Run tiling
