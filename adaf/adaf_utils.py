@@ -218,7 +218,7 @@ class Logger:
             f"Processing log - {time_stamp}\n\n"
         )
 
-        with open(self.log_file_path, 'w') as log:
+        with open(self.log_file_path, 'w', encoding='utf-8', errors='replace') as log:
             log.write(log_entry)
 
     def log(self, message):
@@ -226,7 +226,7 @@ class Logger:
         timestamp = strftime('%Y-%m-%d %H:%M:%S', localtime())
         log_entry = f'[{timestamp}] {message}\n'
 
-        with open(self.log_file_path, 'a') as log_file:
+        with open(self.log_file_path, 'a', encoding='utf-8', errors='replace') as log_file:
             log_file.write(log_entry)
 
     def log_section(self, section):
@@ -236,7 +236,7 @@ class Logger:
             f"{section.capitalize()} log:\n\n"
         )
 
-        with open(self.log_file_path, 'a') as log_file:
+        with open(self.log_file_path, 'a', encoding='utf-8', errors='replace') as log_file:
             log_file.write(log_entry)
 
     def log_vis_inputs(self, image_path, vis_exist):
@@ -258,7 +258,7 @@ class Logger:
             + image_log
         )
 
-        with open(self.log_file_path, 'a') as log_file:
+        with open(self.log_file_path, 'a', encoding='utf-8', errors='replace') as log_file:
             log_file.write(log_entry)
 
     def log_vis_results(self, vis_dir, vrt_path, save_vis, processing_time):
@@ -293,7 +293,7 @@ class Logger:
             f"\n"
         )
 
-        with open(self.log_file_path, 'a') as log_file:
+        with open(self.log_file_path, 'a', encoding='utf-8', errors='replace') as log_file:
             log_file.write(log_entry)
 
     @staticmethod
@@ -366,7 +366,7 @@ class Logger:
             f"\n"
         )
 
-        with open(self.log_file_path, 'a') as log_file:
+        with open(self.log_file_path, 'a', encoding='utf-8', errors='replace') as log_file:
             log_file.write(log_entry)
 
     def log_inference_results(self, vector_path, processing_time, list_to_raw_files, min_area, roundness=None):
@@ -406,7 +406,7 @@ class Logger:
             f"\n"
         )
 
-        with open(self.log_file_path, 'a') as log_file:
+        with open(self.log_file_path, 'a', encoding='utf-8', errors='replace') as log_file:
             log_file.write(log_entry)
 
     def log_total_time(self, processing_time):
@@ -423,7 +423,7 @@ class Logger:
             f"TOTAL TIME: {processing_time:.1f} {time_unit}\n\n"
         )
 
-        with open(self.log_file_path, 'a') as log_file:
+        with open(self.log_file_path, 'a', encoding='utf-8', errors='replace') as log_file:
             log_file.write(log_entry)
 
 
