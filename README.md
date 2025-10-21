@@ -86,20 +86,25 @@ See the **Step by step instructions** below.
 
     * GDAL
         ```bash
-        conda install -c conda-forge gdal
+        conda install -c conda-forge gdal=3.10.3
         ```
         > Older Python versions: Wheel file for Python 3.8 is available in the folder `installation` and can be installed manualy using pip. 
     
-    * AiTLAS
-      This package instals AiTLAS and all other requirements for running ADAF (rasterio, jupyter notebooks, etc.)
+   * Other Python dependencies
         ```bash
-        pip install ./installation/aitlas-0.0.1-py3-none-any.whl
+        conda install -c conda-forge rasterio fiona jupyterlab
         ```
+
+   * AiTLAS
+     This package installs AiTLAS
+       ```bash
+       pip install ./installation/aitlas-0.0.1-py3-none-any.whl
+       ```
    
 8. Enable the use of the `adaf` virtual environment in Jupyter notebooks by running:
 
     ```bash   
-    python -m ipykernel install --name adaf
+    python -m ipykernel install --name adaf --user
     ```
 
 9. Run Jupyter Notebook with the following command:
