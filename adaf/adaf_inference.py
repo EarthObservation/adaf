@@ -35,6 +35,12 @@ from adaf.adaf_vis import tiled_processing
 logging.disable(logging.INFO)
 
 
+def safe_pool_size():
+    cpus = os.cpu_count() or 1
+    cap = 60 if os.name == 'nt' else cpus  # Windows hard cap
+    return max(1, min(cpus - 2, cap))      # leave a couple of cores free
+
+
 def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths=False, min_area=None):
     """Converts object detection bounding boxes from text to vector format.
 
@@ -249,6 +255,7 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
 
     # Create reference grid, filter it and save it to disk
     tiles_extents = gt.bounding_grid(in_file.as_posix(), tile_size, tag=False)
+    tiles_extents["geometry"] = tiles_extents.geometry.buffer(32, join_style=2)
     tiles_extents = gt.filter_by_outline(tiles_extents, valid_data_outline)
 
     # Run visualizations
@@ -290,6 +297,7 @@ def run_tiling(dem_path, tile_size, save_dir, nr_processes=1):
 
     # Create reference grid and filter it
     tiles_extents = gt.bounding_grid(in_file.as_posix(), tile_size, tag=False)
+    tiles_extents["geometry"] = tiles_extents.geometry.buffer(32, join_style=2)
     tiles_extents = gt.filter_by_outline(tiles_extents, valid_data_outline)
 
     # Run tiling
@@ -480,9 +488,8 @@ def main_routine(inp):
     t1 = time.time()
 
     # Determine nr_processes from available CPUs (leave two free)
-    my_cpus = os.cpu_count() - 2
-    if my_cpus < 1:
-        my_cpus = 1
+    my_cpus = safe_pool_size()
+    
     # The processing of the image is done on tiles (for better performance)
     tile_size_px = 1024  # Tile size has to be in base 2 (512, 1024) for inference to work!
 
