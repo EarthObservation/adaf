@@ -86,12 +86,13 @@ See the **Step by step instructions** below.
 
     * GDAL and connected Pythin dependencies
         ```bash
-        pip install https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/GDAL-3.9.2-cp39-cp39-win_amd64.whl https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/fiona-1.10.1-cp39-cp39-win_amd64.whl https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/rasterio-1.3.11-cp39-cp39-win_amd64.whl
+        pip install "numpy==1.26.4" https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/GDAL-3.9.2-cp39-cp39-win_amd64.whl https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/fiona-1.10.1-cp39-cp39-win_amd64.whl https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/rasterio-1.3.11-cp39-cp39-win_amd64.whl "opencv-python<4.12" "opencv-python-headless<4.12"
         ```
     > Downloads and installs the unofficial wheels for:
     > gdal 3.10.3
     > rasterio 1.4.3
     > fiona 1.10.1
+    > numpy 1.26.4, opencv-python <4.12 and opencv-python-headless <4.12 are required for compatibility
 
    * AiTLAS
      This package installs AiTLAS
