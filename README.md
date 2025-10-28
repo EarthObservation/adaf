@@ -64,7 +64,7 @@ See the **Step by step instructions** below.
 5. Create and activate a conda environment called `adaf`. Run commands:
 
     ```bash
-    conda create -n adaf python=3.9 -c conda-forge
+    conda create -n adaf python=3.9
     conda activate adaf
     ```
     
@@ -84,16 +84,14 @@ See the **Step by step instructions** below.
 
 7. Install required Python packages
 
-    * GDAL
+    * GDAL and connected Pythin dependencies
         ```bash
-        conda install -c conda-forge gdal=3.10.3
+        pip install https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/GDAL-3.9.2-cp39-cp39-win_amd64.whl https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/fiona-1.10.1-cp39-cp39-win_amd64.whl https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/rasterio-1.3.11-cp39-cp39-win_amd64.whl
         ```
-        > Older Python versions: Wheel file for Python 3.8 is available in the folder `installation` and can be installed manualy using pip. 
-    
-   * Other Python dependencies
-        ```bash
-        conda install -c conda-forge rasterio fiona jupyterlab
-        ```
+    > Downloads and installs the unofficial wheels for:
+    > gdal 3.10.3
+    > rasterio 1.4.3
+    > fiona 1.10.1
 
    * AiTLAS
      This package installs AiTLAS
@@ -101,16 +99,16 @@ See the **Step by step instructions** below.
        pip install ./installation/aitlas-0.0.1-py3-none-any.whl
        ```
    
-8. Enable the use of the `adaf` virtual environment in Jupyter notebooks by running:
+7. Enable the use of the `adaf` virtual environment in Jupyter notebooks by running:
 
     ```bash   
     python -m ipykernel install --name adaf --user
     ```
 
-9. Run Jupyter Notebook with the following command:
+8. Run Jupyter Notebook with the following command:
 
     ```bash   
-    jupyter notebook ADAF_main.ipynb
+    jupyter lab ADAF_main.ipynb
     ```
 
 # Contributing
