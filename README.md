@@ -4,7 +4,7 @@
 [![DOI](https://zenodo.org/badge/693558184.svg)](https://doi.org/10.5281/zenodo.15861628)
 
 
-
+🚨 For updated installation instructions see: [TRAIL2025.md](TRAIL2025.md)
 
 
 # ADAF - Automatic Detection of Archaeological Features
