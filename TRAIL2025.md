@@ -45,29 +45,41 @@
     
 8. Install required Python packages
 
-    * GDAL and connected Pythin dependencies
+    * GDAL and connected Python dependencies
         ```bash
         pip install "numpy==1.26.4" https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/GDAL-3.9.2-cp39-cp39-win_amd64.whl https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/fiona-1.10.1-cp39-cp39-win_amd64.whl https://github.com/cgohlke/geospatial-wheels/releases/download/v2024.9.22/rasterio-1.3.11-cp39-cp39-win_amd64.whl "opencv-python<4.12" "opencv-python-headless<4.12"
         ```
-    > Downloads and installs the unofficial wheels for:
-    > gdal 3.10.3
-    > rasterio 1.4.3
-    > fiona 1.10.1
-    > numpy 1.26.4, opencv-python <4.12 and opencv-python-headless <4.12 are required for compatibility
+        > Downloads and installs the unofficial wheels for:
+        > gdal 3.10.3
+        > rasterio 1.4.3
+        > fiona 1.10.1
+        > numpy 1.26.4, opencv-python <4.12 and opencv-python-headless <4.12 are required for compatibility
 
+    * Install PyTorch for CUDA
+        > **Skip this step if you don’t have a CUDA enabled device!**
+
+        ONLY FOR CUDA COMPLIANT GPUs. When installing on a PC which has a CUDA enabled graphics card (view list of [NVIDIA compliant cards](https://developer.nvidia.com/cuda-gpus)) the GPU can be used to reduce processing times.
+  
+        Run to check the CUDA version:
+        ```bash
+        nvidia-smi
+        ```
+
+        Install the compatible [PyTorch version](https://developer.nvidia.com/cuda-gpus).
+    
    * AiTLAS
-     This package installs AiTLAS
-       ```bash
-       pip install ./installation/aitlas-0.0.1-py3-none-any.whl
-       ```
+        This package installs AiTLAS
+        ```bash
+        pip install ./installation/aitlas-0.0.1-py3-none-any.whl
+        ```
    
-9. Enable the use of the `adaf` virtual environment in Jupyter notebooks by running:
+10. Enable the use of the `adaf` virtual environment in Jupyter notebooks by running:
 
     ```bash   
     python -m ipykernel install --name adaf --user
     ```
 
-10. Run Jupyter Notebook with the following command:
+11. Run Jupyter Notebook with the following command:
 
     ```bash   
     jupyter lab ADAF_main.ipynb
