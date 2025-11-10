@@ -63,6 +63,7 @@
         Run to check the CUDA version:
         ```bash
         nvidia-smi
+        nvcc --version
         ```
 
         Install the compatible [PyTorch version](https://developer.nvidia.com/cuda-gpus).
