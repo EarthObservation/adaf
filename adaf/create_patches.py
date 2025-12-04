@@ -225,15 +225,15 @@ def create_segmentation_mask(poly, file_path, image, segments_list):
         # Segments that fall into this patch (there can be more than 1 segments in one patch)
         patch_segments = seg.cx[bounds[0]:bounds[2], bounds[1]:bounds[3]].reset_index(drop=True)
 
-        # # DISCARD SEGMENTS WITH LESS THAN 1/3 AREA ON THE PATCH
-        # Calculate intersection of every segment with the patch extents
-        patch_segments["geom_intersection"] = [segment.intersection(poly) for segment in patch_segments.geometry]
-        # Calculate area of segments and fraction
-        patch_segments["area1"] = patch_segments.area
-        patch_segments["area2"] = [intersected.area for intersected in patch_segments["geom_intersection"]]
-        # Only keep segments with more than 1/3 of the area over the patch
-        patch_segments["area_fraction"] = patch_segments["area2"] / patch_segments["area1"]
-        patch_segments = patch_segments.loc[patch_segments['area_fraction'] > 0.33].reset_index(drop=True)
+        # # # DISCARD SEGMENTS WITH LESS THAN 1/3 AREA ON THE PATCH
+        # # Calculate intersection of every segment with the patch extents
+        # patch_segments["geom_intersection"] = [segment.intersection(poly) for segment in patch_segments.geometry]
+        # # Calculate area of segments and fraction
+        # patch_segments["area1"] = patch_segments.area
+        # patch_segments["area2"] = [intersected.area for intersected in patch_segments["geom_intersection"]]
+        # # Only keep segments with more than 1/3 of the area over the patch
+        # patch_segments["area_fraction"] = patch_segments["area2"] / patch_segments["area1"]
+        # patch_segments = patch_segments.loc[patch_segments['area_fraction'] > 0.33].reset_index(drop=True)
 
         # If any polygons were found, add them to segmentation mask raster
         if len(patch_segments) > 0:
