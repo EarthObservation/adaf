@@ -42,7 +42,7 @@ def create_one_patch(one_tile, segments_gdf, dem_pth):
     # 1 # Clip image tile
     # ####################
     out_image = Path(one_tile["images_path"])
-    out_image.parent.mkdir(exist_ok=True)
+    out_image.parent.mkdir(parents=True, exist_ok=True)
 
     image_path = clip_tile(
         list(one_tile["geometry"].bounds),
