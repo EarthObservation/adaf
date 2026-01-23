@@ -23,7 +23,7 @@ from adaf.adaf_utils import clip_tile, safe_pool_size
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
 
-def create_one_patch(one_tile, segments_gdf, dem_pth):
+def create_one_patch(one_tile, segments_gdf, dem_pth, od_labels=True):
     """Creates ML patch for one tile. Takes tile as dictionary of GeoSeries, vector files with segments and path to
     the source image. Creates a tile of image (raster), segmentation mask of the image (raster) and labelTxt (text file)
     and saves them to disk.
@@ -36,6 +36,8 @@ def create_one_patch(one_tile, segments_gdf, dem_pth):
         A list of GeoDataFrames containing all labeled segments.
     dem_pth : str or pathlib.Path()
         Path to source image, from which the patches are made.
+    od_labels : bool
+        If true, also creates lblTxt files for OD
 
     """
     # ####################
@@ -67,11 +69,12 @@ def create_one_patch(one_tile, segments_gdf, dem_pth):
     # ####################
     # 3 # Create labelTxt
     # ####################
-    label_pth = Path(one_tile["labelTxt_path"])
-    label_pth.parent.mkdir(parents=True, exist_ok=True)
+    if od_labels:
+        label_pth = Path(one_tile["labelTxt_path"])
+        label_pth.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(label_pth, "w") as dst:
-        dst.write(one_tile["labelTxt"])
+        with open(label_pth, "w") as dst:
+            dst.write(one_tile["labelTxt"])
 
 
 def uniform_grid(extents, crs, spacing_xy, stagger=None):
