@@ -217,22 +217,28 @@ def semantic_segmentation_vectors(
         # We have at least one detection
         gdf = gpd.GeoDataFrame(pd.concat(gdf_out, ignore_index=True), crs=crs)
 
-        # # If same object from two different tiles overlap, join them into one
-        # In semantic segmentation this will never happen, because each pixel can belong to only one polygon (when
-        # creating polygons from probability masks.
+        # If same object from two different tiles overlap, join them into one
+        gdf = (
+            gdf.dissolve()  # merge all overlapping geometries
+            .explode(index_parts=False)  # split multipolygons back to single parts
+            .reset_index(drop=True)
+        )
+
+        # Calculate post-processing metrics
+        gdf["roundness"] = (4 * np.pi * gdf.geometry.area / (gdf.geometry.convex_hull.length ** 2)).round(3)
+        gdf["area"] = gdf.geometry.area.round(2)
 
         # Post-processing
         if roundness:
-            gdf["roundness"] = 4 * np.pi * gdf.geometry.area / (gdf.geometry.convex_hull.length ** 2)
             gdf = gdf[gdf["roundness"] > roundness]
         if min_area:
-            gdf["area"] = gdf.geometry.area
             gdf = gdf[gdf["area"] > min_area]
 
         # Export file
         gdf.to_file(output_path.as_posix(), driver="GPKG")
     else:
         output_path = ""
+        # TODO; What happens if no detection!?
 
     return str(output_path)
 
