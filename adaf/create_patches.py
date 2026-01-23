@@ -18,7 +18,7 @@ from rasterio.features import geometry_mask
 from shapely.affinity import translate
 from shapely.geometry import box
 
-from adaf.adaf_utils import clip_tile
+from adaf.adaf_utils import clip_tile, safe_pool_size
 
 warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 
@@ -338,7 +338,7 @@ def create_patches_main(input_raster, seg_masks_dict, output_directory):
     # PROCESS INPUTS:
     input_raster = Path(input_raster)
 
-    nr_processes = cpu_count() - 2
+    nr_processes = safe_pool_size()
 
     output_directory = Path(output_directory)
     output_directory.mkdir(exist_ok=True)

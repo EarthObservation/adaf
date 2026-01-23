@@ -27,18 +27,13 @@ from adaf.adaf_utils import (
     make_predictions_on_patches_segmentation,
     build_vrt_from_list,
     Logger,
-    image_tiling
+    image_tiling,
+    safe_pool_size
 )
 
 from adaf.adaf_vis import tiled_processing
 
 logging.disable(logging.INFO)
-
-
-def safe_pool_size():
-    cpus = os.cpu_count() or 1
-    cap = 60 if os.name == 'nt' else cpus  # Windows hard cap
-    return max(1, min(cpus - 2, cap))      # leave a couple of cores free
 
 
 def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths=False, min_area=None):
