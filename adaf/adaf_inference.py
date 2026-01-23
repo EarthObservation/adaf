@@ -133,8 +133,13 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths
     return str(output_path)
 
 
-def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5,
-                                  keep_ml_paths=False, roundness=None, min_area=None):
+def semantic_segmentation_vectors(
+        predictions_dirs_dict,
+        threshold=0.5,
+        keep_ml_paths=False,
+        roundness=None,
+        min_area=None
+):
     """Converts semantic segmentation probability masks to polygons using a threshold. If more than one class, all
     predictions are stored in the same vector file, class is stored as label attribute.
 
@@ -175,6 +180,12 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5,
                 transform = src.transform
                 crs = src.crs
 
+                # Remove edge effect by 8 pixels (before vectorising)
+                re = 8
+                prob_mask = prob_mask[:, re:-re, re:-re]
+                # Update transform: move origin by N pixels
+                new_transform = transform * transform.translation(re, re)
+
                 prediction = prob_mask.copy()
 
                 # Mask probability map by threshold for extraction of polygons
@@ -185,7 +196,7 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5,
                 prediction[background] = 0
 
                 # Outputs a list of (polygon, value) tuples
-                output = list(shapes(prediction, transform=transform))
+                output = list(shapes(prediction, transform=new_transform))
 
                 # Find polygon covering valid data (value = 1) and transform to GDF friendly format
                 poly = []
