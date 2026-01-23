@@ -20,6 +20,8 @@ from rasterio.windows import from_bounds
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+gdal.UseExceptions()
+
 
 def make_predictions_on_single_patch_store_preds_single_class(
         model,
