@@ -323,63 +323,148 @@ def patches_grid(ds, archaeology, patch_size, stagger):
         return grid
 
 
-def create_patches_main(input_raster, seg_masks_dict, output_directory):
+def assign_splits_to_grid(df_patches, split_gpkg, ds_crs):
+    """
+    Assign each patch to train / val / test based on polygons in split_gpkg.
+
+    split_gpkg must contain polygons with attribute 'split' having values
+    'validation' and/or 'test'. Everything else becomes 'train'.
+
+    Tiles must be COMPLETELY inside validation/test polygons to be assigned there.
+    Tiles intersecting a split polygon but not fully inside are dropped.
+    """
+    split_gdf = gpd.read_file(split_gpkg)
+    # Reproject to raster CRS if needed
+    if split_gdf.crs != ds_crs:
+        split_gdf = split_gdf.to_crs(ds_crs)
+
+    # Build union geometries for val and test
+    val_geom = None
+    test_geom = None
+
+    if not split_gdf[split_gdf["split"].str.lower() == "validation"].empty:
+        val_geom = split_gdf[split_gdf["split"].str.lower() == "validation"].dissolve().geometry.unary_union
+
+    if not split_gdf[split_gdf["split"].str.lower() == "test"].empty:
+        test_geom = split_gdf[split_gdf["split"].str.lower() == "test"].dissolve().geometry.unary_union
+
+    def _tile_split(geom):
+        # validation
+        if val_geom is not None and geom.within(val_geom):
+            return "train/val".split("/")[1] if False else "val"  # keep it simple: "val"
+        # test
+        if test_geom is not None and geom.within(test_geom):
+            return "test"
+        # If it intersects val/test but is not fully within -> discard
+        if (val_geom is not None and geom.intersects(val_geom)) or \
+           (test_geom is not None and geom.intersects(test_geom)):
+            return None
+        # everything else -> train
+        return "train"
+
+    df_patches["split"] = df_patches["geometry"].apply(_tile_split)
+
+    # Drop tiles that are cut by split boundaries
+    df_patches = df_patches[df_patches["split"].notna()].reset_index(drop=True)
+    return df_patches
+
+
+def create_patches_main(input_raster, seg_masks_dict, split_gpkg, output_directory):
     """Main routine for creating patches.
 
     Parameters
     ----------
-    input_raster : str or pathlib.Path()
-        Path to input raster.
+    input_raster : str or pathlib.Path
+        Path to input raster (e.g. DEM/visualisation).
     seg_masks_dict : dict
-        Dictionary containing labels. E.g.: {"barrow": <path to barrow vectors file>}. At least one label, not more than
-        three labels.
-    output_directory : str or pathlib.Path()
-        Path to directory where patches are saved.
-
+        {"barrow": "barrow.gpkg", "ditch": "ditch.gpkg", ...}
+        Up to three classes, as in the original code.
+    split_gpkg : str or pathlib.Path
+        GPKG with polygons and attribute 'split' (values 'validation' or 'test').
+        Everything outside those polygons is assigned to train.
+    output_directory : str or pathlib.Path
+        Root output folder (train/val/test subfolders will be created).
     """
     # ##################################################################################################################
     # PROCESS INPUTS:
     input_raster = Path(input_raster)
+    output_directory = Path(output_directory)
+    output_directory.mkdir(parents=True, exist_ok=True)
 
     nr_processes = safe_pool_size()
 
-    output_directory = Path(output_directory)
-    output_directory.mkdir(exist_ok=True)
+    # Read raster CRS (for reprojecting splits if needed)
+    with rasterio.open(input_raster) as src:
+        ds_crs = src.crs
 
     # ##################################################################################################################
     # PROCESSING STARTS HERE!
 
-    # STEP 1: Join all DFs into one, add arch_type column containing label name of each polygon
-    crs_df = None
+    # ##########################################################################
+    # STEP 1: Read segmentation polygons (single class "barrow")
+    print("Reading segmentation polygons...")
     df_list = []
-    for key, value in seg_masks_dict.items():
-        df = gpd.read_file(value)
-        df["arch_type"] = key
-        df_list.append(df)
-        crs_df = df.crs
-    df_grid = gpd.GeoDataFrame(pd.concat(df_list, ignore_index=True), crs=crs_df)
 
-    # STEP 2: Create grid for patches
+    for arch_type, gpkg_path in seg_masks_dict.items():
+        df = gpd.read_file(gpkg_path)
+
+        # reproject to raster CRS if needed
+        if df.crs != ds_crs:
+            df = df.to_crs(ds_crs)
+
+        df["arch_type"] = arch_type
+
+        # DFM value required by dataloader
+        if "DFM" not in df.columns:
+            df["DFM"] = 1
+
+        df_list.append(df)
+
+    # merged GDF for grid generation
+    df_segments = gpd.GeoDataFrame(pd.concat(df_list, ignore_index=True), crs=ds_crs)
+    print(f"Dataset contains {len(df_segments)} labels.")
+
+    # ##########################################################################
+    # STEP 2: Create grid for patches (where archaeology exists)
+    print("---\nBuilding grid of tiled samples...")
     df_patches = patches_grid(
         input_raster,
-        df_grid,
+        df_segments,
         patch_size=512,
         stagger=256
     )
 
-    # STEP 3: Generate paths for saving patches
-    for data_type in ["images", "segmentation_masks", "labelTxt"]:
-        suff = ".txt" if data_type == "labelTxt" else ".tif"
-        ds_name = input_raster.stem
-        df_patches[f"{data_type}_path"] = [
-            Path(output_directory / data_type / f"{x}__{ds_name}__{data_type}{suff}").as_posix()
-            for x in df_patches["filestem"]
-        ]
+    # ##########################################################################
+    # STEP 3: Assign tiles to train / val / test via split polygons
+    print("Assigning tiles to train / val / test...")
+    df_patches = assign_splits_to_grid(df_patches, split_gpkg, ds_crs)
 
-    # # Save GDF (for DEBUG)
-    # df_patches.to_file("test-names.gpkg", driver="GPKG")
+    # ##########################################################################
+    # STEP 4: Generate paths for saving patches in standard layout
+    print("Generating paths for saving patches...")
 
-    # STEP 4: Multiprocessing run for create single patch
+    ds_name = input_raster.stem  # e.g. BiH_ALS_2025_DMT_05m_SLRM...
+
+    # Use "split" and "filestem" from STEP3 to create paths
+    for idx, row in df_patches.iterrows():
+        split = row["split"]          # 'train', 'val', or 'test'
+        filestem = row["filestem"]    # lower-left coords from patches_grid
+
+        for data_type in ["images", "segmentation_masks", "labelTxt"]:
+            suff = ".txt" if data_type == "labelTxt" else ".tif"
+            out_dir = output_directory / split / data_type
+            out_path = out_dir / f"{filestem}__{ds_name}__{data_type}{suff}"
+            df_patches.at[idx, f"{data_type}_path"] = out_path.as_posix()
+
+    # Save tiles grid in the root directory
+    tiles_gpkg = output_directory / f"tiles_{output_directory.name}.gpkg"
+    df_patches.to_file(tiles_gpkg.as_posix(), driver="GPKG")
+    print(f"Saved tiles grid to {tiles_gpkg}")
+
+
+    # ##########################################################################
+    # STEP 5: Multiprocessing – call create_one_patch
+    print("Creating patches...")
     input_process_list = []
     for _, in_tile in df_patches.iterrows():
         input_process_list.append(
@@ -390,35 +475,47 @@ def create_patches_main(input_raster, seg_masks_dict, output_directory):
             )
         )
 
-    # print("Start multiproc")
-
     with mp.Pool(nr_processes) as p:
-        _ = [p.apply_async(create_one_patch, r) for r in input_process_list]
-        # for result in realist:
-        #     pool_out = result.get()
+        # _ = [p.apply_async(create_one_patch, r) for r in input_process_list]
+        results = p.starmap(create_one_patch, input_process_list)  # each item is a tuple of args
 
     # # Single run (FOR DEBUG)
-    # tiles_gpkg(*input_process_list[10])
+    # create_one_patch(*input_process_list[10])
 
     print("Finished creating patches")
 
 
 if __name__ == "__main__":
-    # Define paths to inputs and outputs
-    input_image = r"../test_data/test_patches/my_DFM.vrt"
-    output_dir = r"../test_data/training_samples"
-
-    # The dictionary HAST TO BE!!! in this format - at least one label and max 3 labels (there is no check)
-    # Key is name of label and value is path to vector file. Can use any label name, in example default names are used.
+    # # Define paths to inputs and outputs
+    # input_image = r"r:\delovno\nejc\stone_visualisations\BiH_ALS_2025_DMO_05m_slrm4inference.vrt"
+    # output_dir = r"r:\delovno\nejc\stone_barrow_v5"
+    #
+    # # The dictionary HAST TO BE!!! in this format - at least one label and max 3 labels (there is no check)
+    # # Key is name of label and value is path to vector file. Can use any label name, in example default names are used.
+    # # segmentation_masks = {
+    # #     "barrow": r"../test_data/test_patches/arch/barrow_segmentation_TM75.gpkg",
+    # #     "enclosure": r"../test_data/test_patches/arch/enclosure_segmentation_TM75.gpkg",
+    # #     "ringfort": r"../test_data/test_patches/arch/ringfort_segmentation_TM75.gpkg"
+    # # }
     # segmentation_masks = {
-    #     "barrow": r"../test_data/test_patches/arch/barrow_segmentation_TM75.gpkg",
-    #     "enclosure": r"../test_data/test_patches/arch/enclosure_segmentation_TM75.gpkg",
-    #     "ringfort": r"../test_data/test_patches/arch/ringfort_segmentation_TM75.gpkg"
+    #     "barrow": r"r:\delovno\nejc\stone_patches\gomile_11-28-205.gpkg"
+    #     #"enclosure": r"../test_data/test_patches/arch/enclosure_segmentation_TM75.gpkg",
+    #     #"ringfort": r"../test_data/test_patches/arch/ringfort_segmentation_TM75.gpkg"
     # }
-    segmentation_masks = {
-        "barrow": r"../test_data/test_patches/arch/barrow_segmentation_TM75.gpkg",
-        "enclosure": r"../test_data/test_patches/arch/enclosure_segmentation_TM75.gpkg",
-        "ringfort": r"../test_data/test_patches/arch/ringfort_segmentation_TM75.gpkg"
+    # split_dataset = r"c:\test_adaf_retrain\als_ml_testna_obmocja2.gpkg"
+    #
+    # create_patches_main(input_image, segmentation_masks, split_dataset, output_dir)
+
+    input_raster = r"r:\delovno\nejc\stone_visualisations\BiH_ALS_2025_DMO_05m_slrm4inference.vrt"
+
+    df_splits = gpd.read_file(r"r:\ML podatki\learning_samples\training_samples_BiH_v7_512px\tiles-test.gpkg")
+
+    print("Reading segmentation polygons...")
+
+    seg_masks_dict = {
+        "barrow": r"r:\ML podatki\archaeology\gomile_2025-11-28.gpkg"
+        # "enclosure": r"../test_data/test_patches/arch/enclosure_segmentation_TM75.gpkg",
+        # "ringfort": r"../test_data/test_patches/arch/ringfort_segmentation_TM75.gpkg"
     }
 
     create_patches_main(input_image, segmentation_masks, output_dir)
