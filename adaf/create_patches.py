@@ -7,7 +7,6 @@ Requires ADAF toolbox.
 """
 import multiprocessing as mp
 import warnings
-from os import cpu_count
 from pathlib import Path
 
 import geopandas as gpd
@@ -375,7 +374,7 @@ def create_patches_main(input_raster, seg_masks_dict, split_gpkg, output_directo
     Parameters
     ----------
     input_raster : str or pathlib.Path
-        Path to input raster (e.g. DEM/visualisation).
+        File path to input raster (e.g. DEM/visualisation).
     seg_masks_dict : dict
         {"barrow": "barrow.gpkg", "ditch": "ditch.gpkg", ...}
         Up to three classes, as in the original code.
@@ -483,39 +482,3 @@ def create_patches_main(input_raster, seg_masks_dict, split_gpkg, output_directo
     # create_one_patch(*input_process_list[10])
 
     print("Finished creating patches")
-
-
-if __name__ == "__main__":
-    # # Define paths to inputs and outputs
-    # input_image = r"r:\delovno\nejc\stone_visualisations\BiH_ALS_2025_DMO_05m_slrm4inference.vrt"
-    # output_dir = r"r:\delovno\nejc\stone_barrow_v5"
-    #
-    # # The dictionary HAST TO BE!!! in this format - at least one label and max 3 labels (there is no check)
-    # # Key is name of label and value is path to vector file. Can use any label name, in example default names are used.
-    # # segmentation_masks = {
-    # #     "barrow": r"../test_data/test_patches/arch/barrow_segmentation_TM75.gpkg",
-    # #     "enclosure": r"../test_data/test_patches/arch/enclosure_segmentation_TM75.gpkg",
-    # #     "ringfort": r"../test_data/test_patches/arch/ringfort_segmentation_TM75.gpkg"
-    # # }
-    # segmentation_masks = {
-    #     "barrow": r"r:\delovno\nejc\stone_patches\gomile_11-28-205.gpkg"
-    #     #"enclosure": r"../test_data/test_patches/arch/enclosure_segmentation_TM75.gpkg",
-    #     #"ringfort": r"../test_data/test_patches/arch/ringfort_segmentation_TM75.gpkg"
-    # }
-    # split_dataset = r"c:\test_adaf_retrain\als_ml_testna_obmocja2.gpkg"
-    #
-    # create_patches_main(input_image, segmentation_masks, split_dataset, output_dir)
-
-    input_raster = r"r:\delovno\nejc\stone_visualisations\BiH_ALS_2025_DMO_05m_slrm4inference.vrt"
-
-    df_splits = gpd.read_file(r"r:\ML podatki\learning_samples\training_samples_BiH_v7_512px\tiles-test.gpkg")
-
-    print("Reading segmentation polygons...")
-
-    seg_masks_dict = {
-        "barrow": r"r:\ML podatki\archaeology\gomile_2025-11-28.gpkg"
-        # "enclosure": r"../test_data/test_patches/arch/enclosure_segmentation_TM75.gpkg",
-        # "ringfort": r"../test_data/test_patches/arch/ringfort_segmentation_TM75.gpkg"
-    }
-
-    create_patches_main(input_image, segmentation_masks, output_dir)
