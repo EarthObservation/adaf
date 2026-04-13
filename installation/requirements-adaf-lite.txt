@@ -1,0 +1,22 @@
+# Minimal runtime dependencies for ADAF inference without external aitlas package
+numpy
+pandas
+geopandas
+shapely
+pyproj
+rasterio
+GDAL
+
+# ML inference stack (replaces aitlas dependency)
+torch
+torchvision
+timm
+
+# ADAF visualisations
+rvt-py
+
+# ADAF widget / notebook interface
+ipywidgets
+traitlets
+ipython
+yaspin

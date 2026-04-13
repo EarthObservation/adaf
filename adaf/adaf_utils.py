@@ -12,8 +12,7 @@ from time import localtime, strftime
 
 import numpy as np
 import rasterio
-from aitlas.transforms import ResizeV2
-from aitlas.transforms import Transpose
+from adaf.aitlas_minimal import ResizeV2, Transpose
 from osgeo import gdal
 from rasterio.windows import from_bounds
 

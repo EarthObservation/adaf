@@ -15,7 +15,7 @@ import geopandas as gpd
 import numpy as np
 import pandas as pd
 import rasterio
-from aitlas.models import FasterRCNN, HRNet
+from adaf.aitlas_minimal import FasterRCNN, HRNet
 from pyproj import CRS
 from rasterio.features import shapes
 from shapely.geometry import box, shape

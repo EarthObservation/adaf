@@ -7,6 +7,15 @@
 🚨 For updated installation instructions see: [TRAIL2025.md](TRAIL2025.md)
 
 
+### Lightweight ADAF dependencies (without `aitlas` package)
+For a demonstration-focused setup that vendors only the AiTLAS code used by ADAF inference, use:
+
+```
+pip install -r installation/requirements-adaf-lite.txt
+```
+
+
+
 # ADAF - Automatic Detection of Archaeological Features
 
 
