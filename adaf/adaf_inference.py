@@ -27,18 +27,13 @@ from adaf.adaf_utils import (
     make_predictions_on_patches_segmentation,
     build_vrt_from_list,
     Logger,
-    image_tiling
+    image_tiling,
+    safe_pool_size
 )
 
 from adaf.adaf_vis import tiled_processing
 
 logging.disable(logging.INFO)
-
-
-def safe_pool_size():
-    cpus = os.cpu_count() or 1
-    cap = 60 if os.name == 'nt' else cpus  # Windows hard cap
-    return max(1, min(cpus - 2, cap))      # leave a couple of cores free
 
 
 def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths=False, min_area=None):
@@ -133,8 +128,13 @@ def object_detection_vectors(predictions_dirs_dict, threshold=0.5, keep_ml_paths
     return str(output_path)
 
 
-def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5,
-                                  keep_ml_paths=False, roundness=None, min_area=None):
+def semantic_segmentation_vectors(
+        predictions_dirs_dict,
+        threshold=0.5,
+        keep_ml_paths=False,
+        roundness=None,
+        min_area=None
+):
     """Converts semantic segmentation probability masks to polygons using a threshold. If more than one class, all
     predictions are stored in the same vector file, class is stored as label attribute.
 
@@ -175,6 +175,12 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5,
                 transform = src.transform
                 crs = src.crs
 
+                # Remove edge effect by 8 pixels (before vectorising)
+                re = 8
+                prob_mask = prob_mask[:, re:-re, re:-re]
+                # Update transform: move origin by N pixels
+                new_transform = transform * transform.translation(re, re)
+
                 prediction = prob_mask.copy()
 
                 # Mask probability map by threshold for extraction of polygons
@@ -185,7 +191,7 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5,
                 prediction[background] = 0
 
                 # Outputs a list of (polygon, value) tuples
-                output = list(shapes(prediction, transform=transform))
+                output = list(shapes(prediction, transform=new_transform))
 
                 # Find polygon covering valid data (value = 1) and transform to GDF friendly format
                 poly = []
@@ -206,22 +212,28 @@ def semantic_segmentation_vectors(predictions_dirs_dict, threshold=0.5,
         # We have at least one detection
         gdf = gpd.GeoDataFrame(pd.concat(gdf_out, ignore_index=True), crs=crs)
 
-        # # If same object from two different tiles overlap, join them into one
-        # In semantic segmentation this will never happen, because each pixel can belong to only one polygon (when
-        # creating polygons from probability masks.
+        # If same object from two different tiles overlap, join them into one
+        gdf = (
+            gdf.dissolve()  # merge all overlapping geometries
+            .explode(index_parts=False)  # split multipolygons back to single parts
+            .reset_index(drop=True)
+        )
+
+        # Calculate post-processing metrics
+        gdf["roundness"] = (4 * np.pi * gdf.geometry.area / (gdf.geometry.convex_hull.length ** 2)).round(3)
+        gdf["area"] = gdf.geometry.area.round(2)
 
         # Post-processing
         if roundness:
-            gdf["roundness"] = 4 * np.pi * gdf.geometry.area / (gdf.geometry.convex_hull.length ** 2)
             gdf = gdf[gdf["roundness"] > roundness]
         if min_area:
-            gdf["area"] = gdf.geometry.area
             gdf = gdf[gdf["area"] > min_area]
 
         # Export file
         gdf.to_file(output_path.as_posix(), driver="GPKG")
     else:
         output_path = ""
+        # TODO; What happens if no detection!?
 
     return str(output_path)
 
@@ -251,18 +263,27 @@ def run_visualisations(dem_path, tile_size, save_dir, nr_processes=1):
     in_file = Path(dem_path)
 
     # We need polygon covering valid data
-    valid_data_outline, _ = gt.poly_from_valid(in_file.as_posix())
+    # todo valid_data_outline, _ = gt.poly_from_valid(in_file.as_posix()) - clean up code
 
     # Create reference grid, filter it and save it to disk
     tiles_extents = gt.bounding_grid(in_file.as_posix(), tile_size, tag=False)
     tiles_extents["geometry"] = tiles_extents.geometry.buffer(32, join_style=2)
-    tiles_extents = gt.filter_by_outline(tiles_extents, valid_data_outline)
+    # todo tiles_extents = gt.filter_by_outline(tiles_extents, valid_data_outline)  - clean up code (remove grid tools)
+
+    # Add cell_ID and extents columns. Extents are (L, B, R, T).
+    out_grid = tiles_extents.reset_index()
+    out_grid = out_grid.rename(columns={'index': 'tile_ID'})
+    out_grid["extents"] = out_grid.bounds.apply(lambda x: (x.minx, x.miny, x.maxx, x.maxy), axis=1)
+
+    # Because tuple can't be saved into file, split extents into separate columns
+    out_grid[["minx", "miny", "maxx", "maxy"]] = pd.DataFrame(out_grid['extents'].tolist(), index=out_grid.index)
+    out_grid = out_grid.drop(columns=['extents'])
 
     # Run visualizations
     logging.debug("Start RVT vis")
     out_paths = tiled_processing(
         input_raster_path=in_file.as_posix(),
-        extents_list=tiles_extents,
+        extents_list=out_grid,
         nr_processes=nr_processes,
         save_dir=Path(save_dir)
     )
