@@ -108,22 +108,23 @@ def tiled_processing(
         input_process_list.append(tuple(to_append))
 
     # # DEBUG: RUN SINGLE INSTANCE
-    # one_instance = input_process_list[13]
-    # res = compute_save_low_levels(*one_instance)
+    # one_instance = input_process_list[0]
+    # res = process_one_tile(*one_instance)
     # logging.debug(res)
 
     # multiprocessing
     skipped_tiles = []
     with mp.Pool(nr_processes) as p:
-        realist = [p.apply_async(process_one_tile, r) for r in input_process_list]
-        for result in realist:
-            pool_out = result.get()
-            # Check if tile was all NaN's (remove it from REFGRID!)
-            if pool_out[0] == 1:
-                logging.debug("Skipped (tile_ID:", pool_out[1], ");", pool_out[2])
-                skipped_tiles.append(pool_out[1])
-            else:
-                logging.debug("tile_ID:", pool_out[1], ";", pool_out[2])
+        # realist = [p.apply_async(process_one_tile, r) for r in input_process_list]
+        results = p.starmap(process_one_tile, input_process_list)  # each item is a tuple of args
+        # for result in realist:
+        #     pool_out = result.get()
+        #     # Check if tile was all NaN's (remove it from REFGRID!)
+        #     if pool_out[0] == 1:
+        #         logging.debug("Skipped (tile_ID:", pool_out[1], ");", pool_out[2])
+        #         skipped_tiles.append(pool_out[1])
+        #     else:
+        #         logging.debug("tile_ID:", pool_out[1], ";", pool_out[2])
 
     # # Remove tiles from REFGRID if any (that was the case in Noise mapping)
     # if skipped_tiles:
@@ -136,7 +137,7 @@ def tiled_processing(
 
     # Build VRTs
     # TODO: hardcoded for slrm, change if different vis will be available
-    #  FILE NAMING IS DONE HERE
+    # FILE NAMING IS DONE HERE
     ds_dir = low_level_dir / 'slrm'
     vrt_name = Path(input_raster_path).stem + "_" + Path(ds_dir).name + ".vrt"
     vrt_path = build_vrt(ds_dir, vrt_name)
@@ -202,8 +203,8 @@ def process_one_tile(
     dict_arrays["no_data"] = np.nan
 
     # Then check, if output slice (w/o buffer) is all NaNs, then skip this tile if yes
-    if (dict_arrays["array"][buffer:-buffer, buffer:-buffer] == np.nan).all():
-        # If all NaNs encountered, output the tile ID
+    tile_arr = dict_arrays["array"][buffer:-buffer, buffer:-buffer]
+    if np.isnan(tile_arr).all():
         return 1, tile_id, f"Skipping, all NaNs in: {tile_name}"
 
     # --- START VISUALIZATION WITH RVT ---

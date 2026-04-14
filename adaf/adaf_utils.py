@@ -19,6 +19,8 @@ from rasterio.windows import from_bounds
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+gdal.UseExceptions()
+
 
 def make_predictions_on_single_patch_store_preds_single_class(
         model,
@@ -583,3 +585,9 @@ def image_tiling(
     vrt_path = build_vrt(patch_dir, vrt_name)
 
     return {"output_directory": patch_dir, "files_list": all_tiles_paths, "vrt_path": vrt_path}
+
+
+def safe_pool_size():
+    cpus = os.cpu_count() or 1
+    cap = 60 if os.name == 'nt' else cpus  # Windows hard cap
+    return max(1, min(cpus - 2, cap))      # leave a couple of cores free
