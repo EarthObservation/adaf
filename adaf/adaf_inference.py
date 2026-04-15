@@ -490,7 +490,7 @@ def main_routine(inp):
         Path to GPKG (vector) file with results of the ML detection.
     """
     dem_path = Path(inp.dem_path)
-    out_dir = Path(inp.out_dir)
+    out_dir = Path(inp.out_dir) if inp.out_dir is not None else dem_path.parent
 
     # Create unique name for results
     time_started = localtime()
