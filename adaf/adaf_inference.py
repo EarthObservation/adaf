@@ -354,12 +354,14 @@ def run_aitlas_object_detection(labels, images_dir, custom_model=None):
     images_dir = str(images_dir)
 
     # Paths to models are relative to the script path
+    script_dir = Path(__file__).resolve().parent
+    model_dir = script_dir / "ml_models"
     models = {
-        "barrow": r".\ml_models\OD_barrow.tar",
-        "enclosure": r".\ml_models\OD_enclosure.tar",
-        "ringfort": r".\ml_models\OD_ringfort.tar",
-        "AO": r".\ml_models\OD_AO.tar",
-        "custom": custom_model
+        "barrow": model_dir / "OD_barrow.tar",
+        "enclosure": model_dir / "OD_enclosure.tar",
+        "ringfort": model_dir / "OD_ringfort.tar",
+        "AO": model_dir / "OD_AO.tar",
+        "custom": Path(custom_model) if custom_model else None
     }
 
     if cuda.is_available():
@@ -420,12 +422,14 @@ def run_aitlas_segmentation(labels, images_dir, custom_model=None):
     images_dir = str(images_dir)
 
     # Paths to models are relative to the script path
+    script_dir = Path(__file__).resolve().parent
+    model_dir = script_dir / "ml_models"
     models = {
-        "barrow": r".\ml_models\barrow_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
-        "enclosure": r".\ml_models\enclosure_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
-        "ringfort": r".\ml_models\ringfort_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
-        "AO": r".\ml_models\AO_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
-        "custom": custom_model
+        "barrow": model_dir / "barrow_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
+        "enclosure": model_dir / "enclosure_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
+        "ringfort": model_dir / "ringfort_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
+        "AO": model_dir / "AO_HRNet_SLRM_512px_pretrained_train_12_val_124_with_Transformation.tar",
+        "custom": Path(custom_model) if custom_model else None
     }
 
     if cuda.is_available():
