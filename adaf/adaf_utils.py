@@ -432,15 +432,15 @@ class ADAFInput:
     """ADAF input parameters."""
     def __init__(self):
         self.input_file_list = None
-        self.vis_exist_ok = None
-        self.save_vis = None
+        self.vis_exist_ok = False
+        self.save_vis = False
         self.ml_type = None
         self.labels = None
         self.ml_model_custom = None
         self.custom_model_pth = None
         self.roundness = None
         self.min_area = None
-        self.save_ml_output = None
+        self.save_ml_output = False
         self.out_dir = None
         self.tiles_to_vrt = None
         self.dem_path = None
