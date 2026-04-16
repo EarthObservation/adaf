@@ -3,7 +3,11 @@
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-370/)
 [![DOI](https://zenodo.org/badge/693558184.svg)](https://doi.org/10.5281/zenodo.15861628)
 
+---
 
+🚨 ARCHON Day 2026 Notebook: [adaf_ws_archon26.ipynb](https://oblak.zrc-sazu.si/index.php/s/KA8Ea2KYndDYRQ9)
+
+---
 
 # ADAF - Automatic Detection of Archaeological Features
 
