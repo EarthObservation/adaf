@@ -4,8 +4,6 @@
 [![DOI](https://zenodo.org/badge/693558184.svg)](https://doi.org/10.5281/zenodo.15861628)
 
 
-🚨 For updated installation instructions see: [TRAIL2025.md](TRAIL2025.md)
-
 
 # ADAF - Automatic Detection of Archaeological Features
 
@@ -18,8 +16,14 @@ Observation (AiTLAS), which provides access to the ML models.
 
 <img src="adaf/media/ringfort.jpg" alt="drawing" width="200"/> <img src="adaf/media/barrows.jpg" alt="drawing" width="200"/> <img src="adaf/media/enclosure.jpg" alt="drawing" width="200"/>
 
+**You are encouraged to cite:**
+
+> Čož, N., Corns, A., Curran, S., Kocev, D., Kokalj, Ž., 2026. Automatic detection of archaeological features from airborne laser scanning data using deep learning: Development and evaluation of the ADAF tool. Journal of Archaeological Science: Reports 71, 105733. https://doi.org/10.1016/j.jasrep.2026.105733
+
 
 # Installation
+
+🚨 For updated installation instructions see: [TRAIL2025.md](TRAIL2025.md)
 
 The installation is currently only supported on Windows 64-bit machines. The application is compatible with machines 
 equipped with CUDA-enabled graphics cards, but will also work on a standard CPU where GPU processing is not possible.
@@ -36,7 +40,7 @@ See the **Step by step instructions** below.
 
 * Files with trained Machine learning models. Download from [HERE](https://doi.org/10.5281/zenodo.15848662).
 
-    > **Warning:** Download contains data with large file size **~5GB** in total. This includes 8 pretrained ML models saved as TAR files - 4 for semantic segmentation and 4 for object detection.
+    > **Attention:** Download contains data with large file size **~5GB** in total. This includes 8 pretrained ML models saved as TAR files - 4 for semantic segmentation and 4 for object detection.
 
 
 ## Step by step instructions
@@ -111,20 +115,33 @@ See the **Step by step instructions** below.
     ```bash   
     jupyter lab ADAF_main.ipynb
     ```
+---
 
-# Contributing
+## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change. Please report any bugs and suggestions for improvements.
 
-# Acknowledgment
+## Funding
 Development of ADAF financed by:
 * Transport Infrastructure Ireland Open Research Call 2021.
 * Slovenian Research and Innovation Agency core funding Earth Observation and geoinformatics (No. P2-0406).
 * European Research Council project STONE (GAP-101089123)
 
-# License
+## About
+ADAF (Automatic Detection of Archaeological Features) is an open-source software package developed by Nejc Čož, Žiga Kokalj, Anthony Corns, Susan Curran, Dragi Kocev, and Ana Kostovska.
+
+It was created through collaboration between ZRC SAZU, Bias Variance Labs, and The Discovery Programme.
+
+Active development and maintenance are currently led by Nejc Čož and Žiga Kokalj.
+
+## License
 This project is licensed under the terms of the [Apache License 2.0](https://github.com/EarthObservation/adaf/blob/main/LICENSE.txt).
 
+Copyright © 2026 ZRC SAZU
+
+
+
+
 # About
-ADAF - Automatic Detection of Archaeological Features library by Nejc Čož, Žiga Kokalj, Dragi Kocev, Ana Kostovska, 2024.
+
 
 It is developed in collaboration between ZRC SAZU, Bias Variance Labs and The Discovery Programmme..
