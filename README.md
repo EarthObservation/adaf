@@ -5,7 +5,7 @@
 
 ---
 
-🚨 ARCHON Day 2026 Notebook: [adaf_ws_archon26.ipynb](https://oblak.zrc-sazu.si/index.php/s/KA8Ea2KYndDYRQ9)
+🚨 ARCHON Day 2026 Notebook: [Gogle Colab](https://colab.research.google.com/github/EarthObservation/adaf_ws-archon26/blob/main/adaf_ws-archon26.ipynb)
 
 ---
 
