@@ -489,7 +489,7 @@ def clip_tile(bounds, out_file_path, src_path, out_nodata=0):
         src_nodata = src.nodata
 
     # Fill NaNs
-    if np.isnan(src_nodata):
+    if src_nodata is None or (isinstance(src_nodata, (float, np.floating)) and np.isnan(src_nodata)):
         out_image[np.isnan(out_image)] = out_nodata
     else:
         out_image[out_image == src_nodata] = out_nodata
@@ -504,7 +504,7 @@ def clip_tile(bounds, out_file_path, src_path, out_nodata=0):
         # This is used for DEM
         meta_nd = out_nodata
 
-    # Update metadata and save geotiff
+    # Update metadata and save GeoTIFF
     out_profile.update(
         driver="GTiff",
         compress="lzw",
@@ -513,7 +513,12 @@ def clip_tile(bounds, out_file_path, src_path, out_nodata=0):
         transform=out_transform,
         nodata=meta_nd
     )
-    with rasterio.open(out_file_path, "w", **out_profile, predictor=3) as dst:
+
+    writer_kwargs = {} 
+    if out_profile.get("dtype") in ("float32", "float64"):
+        writer_kwargs["predictor"] = 3
+
+    with rasterio.open(out_file_path, "w", **out_profile, **writer_kwargs) as dst:
         dst.write(out_image)
 
     return out_file_path

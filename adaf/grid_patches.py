@@ -7,7 +7,7 @@ import pandas as pd
 from adaf.create_patches import uniform_grid
 
 
-def _patches_grid(ds, archaeology_gdf, patch_size, overlap=None):
+def _patches_grid(ds, patch_size, overlap=None):
     """
     Create a GeoDataFrame of tiles (patches) over `ds`, filtered to areas
     where archaeology exists.
@@ -16,8 +16,6 @@ def _patches_grid(ds, archaeology_gdf, patch_size, overlap=None):
     ----------
     ds : str or Path
         File path of input raster (e.g. VRT / GeoTIFF).
-    archaeology_gdf : GeoDataFrame
-        Merged archaeology features in the same CRS as `ds`.
     patch_size : int
         Patch size in pixels (square tiles).
     overlap : int or None
@@ -54,20 +52,6 @@ def _patches_grid(ds, archaeology_gdf, patch_size, overlap=None):
         ds_crs,
         (tile_size_m, tile_size_m),
         stagger_m,
-    )
-
-    # Keep only patches with archaeology
-    if len(archaeology_gdf) > 0:
-        merged = archaeology_gdf.dissolve().geometry.iloc[0]
-        grid_filter = grid["geometry"].intersects(merged)
-        grid = grid[grid_filter].reset_index(drop=True)
-
-    # Create "filestem" for naming files (lower-left coordinates)
-    grid["filestem"] = (
-        grid.bounds[["minx", "miny"]]
-        .astype(int)
-        .astype(str)
-        .agg("_".join, axis=1)
     )
 
     return grid
@@ -141,7 +125,7 @@ def _assign_splits_to_grid(df_patches, split_gpkg, ds_crs, margin=10.0):
     def _tile_split(geom):
         # 1) Validation: fully within validation outer buffer
         if val_outer is not None and geom.within(val_outer):
-            return "val"
+            return "validation"
 
         # 2) Test: fully within test outer buffer
         if test_outer is not None and geom.within(test_outer):
@@ -151,7 +135,7 @@ def _assign_splits_to_grid(df_patches, split_gpkg, ds_crs, margin=10.0):
         outside_val_inner = val_inner is None or not geom.intersects(val_inner)
         outside_test_inner = test_inner is None or not geom.intersects(test_inner)
         if outside_val_inner and outside_test_inner:
-            return "train"
+            return "training"
 
         # 4) Everything else (border cases, overlaps, between inner/outer) → discard
         return None
@@ -221,6 +205,7 @@ def build_learning_dataset_grid(
          - optionally *_path columns if output_directory is provided.
     """
     input_raster = Path(input_raster)
+    split_gdf = gpd.read_file(split_gpkg)
 
     # Read raster CRS (for reprojecting vectors)
     with rasterio.open(input_raster) as src:
@@ -250,10 +235,24 @@ def build_learning_dataset_grid(
     # --- Build grid of tiles over the raster and archaeology ---
     df_patches = _patches_grid(
         ds=input_raster,
-        archaeology_gdf=df_segments,
         patch_size=tile_size,
         overlap=overlap,
     )
+
+    # Keep only patches with archaeology and all from the "test" area
+    if len(df_segments) > 0:
+        # Find TEST AREAS and buffer them
+        test_gdf = split_gdf[split_gdf["split"].str.lower() == "test"].copy()
+        test_gdf["geometry"] = test_gdf.geometry.buffer(-margin)
+        test_gdf = test_gdf[~test_gdf.geometry.is_empty]
+
+        # Merge with archaeology
+        merged = pd.concat([test_gdf,df_segments], ignore_index=True)
+        merged = merged.dissolve().geometry.iloc[0]
+
+        # Filter the patches
+        grid_filter = df_patches["geometry"].intersects(merged)
+        df_patches = df_patches[grid_filter].reset_index(drop=True)
 
     # --- Assign train / val / test based on split polygons ---
     df_splits = _assign_splits_to_grid(
@@ -263,12 +262,20 @@ def build_learning_dataset_grid(
         margin=margin,
     )
 
-    # --- Optionally generate paths and save GPKG ---
+    # --- Optionally generate paths ---
     if output_directory is not None:
         output_directory = Path(output_directory)
         output_directory.mkdir(parents=True, exist_ok=True)
 
         ds_name = input_raster.stem
+
+        # Create "filestem" for naming files (lower-left coordinates)
+        df_splits["filestem"] = (
+            df_splits.bounds[["minx", "miny"]]
+            .astype(int)
+            .astype(str)
+            .agg("_".join, axis=1)
+        )
 
         for idx, row in df_splits.iterrows():
             split = row["split"]       # 'train', 'val', or 'test'
@@ -280,6 +287,7 @@ def build_learning_dataset_grid(
                 out_path = out_dir / f"{filestem}__{ds_name}__{data_type}{suff}"
                 df_splits.at[idx, f"{data_type}_path"] = out_path.as_posix()
 
+    # --- Optionally save to disk ---
     if save_gpkg:
         gpkg_path = output_directory / "tiles.gpkg"
         df_splits.to_file(gpkg_path.as_posix(), driver="GPKG")
@@ -290,22 +298,23 @@ def build_learning_dataset_grid(
 if __name__ == "__main__":
 
     input_raster = r"r:\delovno\nejc\stone_visualisations\BiH_ALS_2025_DMO_05m_slrm4inference.vrt"
-    split_gpkg = r"r:\ML podatki\ml_dataset_split_v2.gpkg"
+    split_pth = r"r:\ML podatki\ml_dataset_split_v2.gpkg"
 
     seg_masks_dict = {
-        "barrow": r"r:\ML podatki\archaeology\gomile_11-28-205.gpkg",
+        "barrow": r"r:\ML podatki\archaeology\gomile_2025-11-28.gpkg",
         # "enclosure": "...",
         # "ringfort": "...",
     }
 
-    output_dir = r"r:\ML podatki\learning_samples\training_samples_BiH_v5"
+    output_dir = r"r:\ML podatki\learning_samples\training_samples_BiH_v7_128px"
 
     df_grid = build_learning_dataset_grid(
-        tile_size=512,
+        tile_size=128,
         input_raster=input_raster,
         seg_masks_dict=seg_masks_dict,
-        split_gpkg=split_gpkg,
+        split_gpkg=split_pth,
         output_directory=output_dir,
         save_gpkg=True,
         margin=10.0,
+        overlap=64
     )
