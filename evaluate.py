@@ -84,7 +84,7 @@ def compute_iou(pred_polygon, gt_polygon):
         iou = np.nan
     return iou
 
-def compute_iou_metric_centroid(metadata_thing_classes, pred_shapes, gt_shapes, iou_threshold):
+def compute_iou_metric_centroid(metadata_thing_classes, pred_shapes, gt_shapes, iou_threshold, return_shapes=False):
     """
     Compute the centroid based mesure considering the spatial relationship between predicted and ground truth objects.
 
@@ -105,6 +105,8 @@ def compute_iou_metric_centroid(metadata_thing_classes, pred_shapes, gt_shapes, 
         ground truth elements 
     iou_threshold : float
         threshold for IoU result comparison: value above this thresholds are candidates to true positive assignment
+    return_shapes : bool, optional
+        Also return per-class TP and FP geometry lists when True.
 
     Returns
     -------
@@ -115,6 +117,7 @@ def compute_iou_metric_centroid(metadata_thing_classes, pred_shapes, gt_shapes, 
         false negatives (FN)
     """
     res = {}
+    classified_shapes = {}
     for cl in metadata_thing_classes:
         res[cl] = {}
         res[cl]["TP"] = 0
@@ -152,6 +155,11 @@ def compute_iou_metric_centroid(metadata_thing_classes, pred_shapes, gt_shapes, 
                 
         res[cl]["TP"] = res[cl]["TP"] + len(tp_shapes)
         res[cl]["FP"] = res[cl]["FP"] + len(fp_shapes)
+        if return_shapes:
+            classified_shapes[cl] = {
+                "TP": [shapely.wkt.loads(p) for p in sorted(tp_shapes)],
+                "FP": [shapely.wkt.loads(p) for p in sorted(fp_shapes)],
+            }
 
     # conversely, consider the GT annotations to check if there are FN
     # loop on GT annotations
@@ -180,7 +188,7 @@ def compute_iou_metric_centroid(metadata_thing_classes, pred_shapes, gt_shapes, 
             if(s not in tp_shapes):
                 fn_shapes.add(s)
         res[cl]["FN"] = res[cl]["FN"] + len(fn_shapes)
-    return res
+    return (res, classified_shapes) if return_shapes else res
 
 
 def compute_metrics(class_mask, class_pred):

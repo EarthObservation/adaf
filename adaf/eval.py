@@ -112,11 +112,12 @@ def run_eval_metrics(pred_path, gt_path, splti_pth, iou_threshold=0):
     gt_test_mp   = gdf_to_multipolygon_nondissolving(gt_test)
 
     # Centroid-based evaluation
-    centroid_based = evaluate.compute_iou_metric_centroid(
+    centroid_based, classified_shapes = evaluate.compute_iou_metric_centroid(
         ["barrow"], 
         {"barrow": list(pred_test_mp.geoms)}, 
         {"barrow": list(gt_test_mp.geoms)}, 
-        iou_threshold
+        iou_threshold,
+        return_shapes=True,
     )
 
     # Pixel-based evaluation
@@ -131,9 +132,38 @@ def run_eval_metrics(pred_path, gt_path, splti_pth, iou_threshold=0):
         pixel_based = evaluate.compute_metrics(gt_mask, pred_mask)
         total_pixel_based += np.asarray(pixel_based, dtype=np.int64)
 
-    # TODO: calculate f1 score for both results
-
-    # TODO: export GDF with TP and FP geometries (save results to log file instead of print)    
+    centroid_counts = centroid_based["barrow"]
+    centroid_denominator = (
+        2 * centroid_counts["TP"] + centroid_counts["FP"] + centroid_counts["FN"]
+    )
+    centroid_f1 = (
+        2 * centroid_counts["TP"] / centroid_denominator
+        if centroid_denominator else 0.0
+    )
+    tp, fp, fn = map(int, total_pixel_based[:3])
+    pixel_denominator = 2 * tp + fp + fn
+    pixel_f1 = 2 * tp / pixel_denominator if pixel_denominator else 0.0
+    geometry_path = pred_path.with_name(f"{pred_path.stem}_eval.gpkg")
+    log_path = pred_path.with_name(f"{pred_path.stem}_eval.log")
+    shapes = classified_shapes["barrow"]
+    results_gdf = gpd.GeoDataFrame(
+        {"classification": [label for label in ("TP", "FP") for _ in shapes[label]]},
+        geometry=shapes["TP"] + shapes["FP"],
+        crs=pred_test.crs,
+    )
+    results_gdf.to_file(geometry_path, layer="predictions", driver="GPKG", index=False)
+    log_path.write_text(
+        f"Predictions: {pred_path}\n"
+        f"Ground truth: {gt_path}\n"
+        f"Split: {splti_pth}\n"
+        f"IoU threshold: {iou_threshold}\n"
+        f"Centroid-based counts: {centroid_counts}\n"
+        f"Centroid-based F1: {centroid_f1:.6f}\n"
+        f"Pixel-based counts (TP, FP, FN, TN): {total_pixel_based.tolist()}\n"
+        f"Pixel-based F1: {pixel_f1:.6f}\n"
+        f"Geometries: {geometry_path}\n",
+        encoding="utf-8",
+    )
 
     return centroid_based, total_pixel_based
 
@@ -148,5 +178,4 @@ if __name__ == "__main__":
         iou_threshold=0
     )
 
-    print(res_eval)
     
