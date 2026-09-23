@@ -1,4 +1,4 @@
-import evaluate
+import adaf.evaluate as evaluate
 import geopandas as gpd
 from pathlib import Path
 from shapely.geometry import MultiPolygon, Polygon
@@ -76,7 +76,7 @@ def gdf_to_bool_mask_in_rect(
     return mask.astype(bool)
 
 
-def run_eval_metrics(pred_path, gt_path, splti_pth, iou_threshold=0):
+def run_eval_metrics(pred_path, gt_path, splti_pth, iou_threshold=0, file_tag=None):
     pred_path=Path(pred_path)
     gt_path=Path(gt_path)
     splti_pth=Path(splti_pth)
@@ -85,6 +85,15 @@ def run_eval_metrics(pred_path, gt_path, splti_pth, iou_threshold=0):
     pred_gdf = gpd.read_file(pred_path)
     gt_gdf = gpd.read_file(gt_path)
     split_gdf = gpd.read_file(splti_pth)
+
+    # Some prediction exports contain geometry without post-processing metrics.
+    if "area" not in pred_gdf.columns:
+        pred_gdf["area"] = pred_gdf.geometry.area
+    if "roundness" not in pred_gdf.columns:
+        perimeter = pred_gdf.geometry.convex_hull.length
+        pred_gdf["roundness"] = (
+            4 * np.pi * pred_gdf.geometry.area / perimeter.where(perimeter > 0) ** 2
+        ).round(3)
 
     # Post-processing of ML results
     pred_gdf = pred_gdf[pred_gdf["area"] < 1500].reset_index(drop=True)
@@ -143,8 +152,8 @@ def run_eval_metrics(pred_path, gt_path, splti_pth, iou_threshold=0):
     tp, fp, fn = map(int, total_pixel_based[:3])
     pixel_denominator = 2 * tp + fp + fn
     pixel_f1 = 2 * tp / pixel_denominator if pixel_denominator else 0.0
-    geometry_path = pred_path.with_name(f"{pred_path.stem}_eval.gpkg")
-    log_path = pred_path.with_name(f"{pred_path.stem}_eval.log")
+    geometry_path = pred_path.with_name(f"{pred_path.stem}_eval_{file_tag}.gpkg")
+    log_path = pred_path.with_name(f"{pred_path.stem}_eval_{file_tag}.log")
     shapes = classified_shapes["barrow"]
     results_gdf = gpd.GeoDataFrame(
         {"classification": [label for label in ("TP", "FP") for _ in shapes[label]]},
@@ -157,6 +166,8 @@ def run_eval_metrics(pred_path, gt_path, splti_pth, iou_threshold=0):
         f"Ground truth: {gt_path}\n"
         f"Split: {splti_pth}\n"
         f"IoU threshold: {iou_threshold}\n"
+        f"Total ground truth objects: {len(gt_test)}\n"
+        f"Total predictions: {centroid_counts['TP'] + centroid_counts['FP']}\n"
         f"Centroid-based counts: {centroid_counts}\n"
         f"Centroid-based F1: {centroid_f1:.6f}\n"
         f"Pixel-based counts (TP, FP, FN, TN): {total_pixel_based.tolist()}\n"
@@ -173,8 +184,8 @@ if __name__ == "__main__":
 
     res_eval = run_eval_metrics(
         pred_path=r"r:\ML podatki\ml_results\adaf_retrained_2-512px.gpkg",
-        gt_path=r"r:\ML podatki\archaeology\gomile_2025-11-28.gpkg",
-        splti_pth=r"r:\ML podatki\learning_samples\tmp.gpkg",
+        gt_path=r"r:\ML podatki\archaeology\gomile_2026-09-02.gpkg",
+        splti_pth=r"r:\ML podatki\learning_samples\ml_dataset_split_v2.gpkg",
         iou_threshold=0
     )
 
